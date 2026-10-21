@@ -13,15 +13,17 @@ Provide a small reusable Go presentation shell for substantial browser applicati
 1. The component contains no business logic or domain semantics.
 2. The consuming application owns routing decisions, permissions, validation, persistence, state and business behaviour.
 3. The reusable package is publicly importable by other Go modules and therefore must not live solely under Go's `internal` boundary.
-4. Core application navigation and form submission must remain useful without JavaScript.
-5. V0.1 requires no Node, npm, frontend framework, code generation or frontend build step.
-6. The runtime dependency set is the Go standard library only.
-7. One server-rendered structure must adapt across compact and wide layouts; there is no separate mobile application or mobile URL tree.
-8. Responsive behaviour is based on available layout width rather than device detection.
-9. The shell may style application content but must not infer what application content means.
-10. Optional PWA support may cache only an explicit static allowlist and offline fallback; it must not invent generic offline business-data behaviour.
-11. The shell must work as an ordinary web application when PWA capability is disabled or unsupported.
-12. The public API stays deliberately small. V0.1 is an application frame, not a general widget library.
+4. Integration is through standard Go values/interfaces; there are no framework-specific router/context adapters in V0.1.
+5. Renderer/configuration state is instance-owned; there is no required global engine, mutable plugin registry or service/dependency container.
+6. Core application navigation and form submission must remain useful without JavaScript.
+7. V0.1 requires no Node, npm, frontend framework, code generation or frontend build step.
+8. The runtime dependency set is the Go standard library only.
+9. One server-rendered structure must adapt across compact and wide layouts; there is no separate mobile application or mobile URL tree.
+10. Responsive behaviour is based on available layout width rather than device detection.
+11. The shell may style application content but must not infer what application content means.
+12. Optional PWA support may cache only an explicit static allowlist and offline fallback; it must not invent generic offline business-data behaviour.
+13. The shell must work as an ordinary web application when PWA capability is disabled or unsupported.
+14. The public API stays deliberately small. V0.1 is an application frame, not an admin framework or general widget library.
 
 ## 3. Architecture
 
@@ -34,6 +36,7 @@ Provide a small reusable Go presentation shell for substantial browser applicati
                  +---------------------+
                  |    go-app-shell     |
                  |                     |
+                 | Renderer instance   |
                  | Page model          |
                  | Nav model           |
                  | Workspace model     |
@@ -58,7 +61,7 @@ Provide a small reusable Go presentation shell for substantial browser applicati
        one useful pane        nav + flexible workspace
 ```
 
-There is no application database, queue, state store, client-side router, component runtime or JavaScript application state inside the shell.
+There is no application database, queue, state store, client-side router, component runtime, framework adapter layer, plugin registry, service container or JavaScript application state inside the shell.
 
 ## 4. Repository and package layout
 
@@ -111,6 +114,10 @@ V0.1 should expose a small set of presentation-only types. Exact names may chang
 Conceptually:
 
 ```go
+type Renderer struct {
+    // immutable compiled templates/assets plus instance configuration
+}
+
 type Page struct {
     App        AppHeader
     Navigation []NavItem
@@ -130,13 +137,15 @@ type NavItem struct {
 }
 ```
 
+Renderer construction/configuration returns an instance. Two differently configured renderer instances must be able to coexist in one process without shared mutable presentation state.
+
 The component may also provide small generic presentation metadata such as tone names or layout mode.
 
 It must not expose domain concepts such as customer, invoice, incident, approval, severity, owner, workflow state or entitlement.
 
 The consuming application remains responsible for producing any trusted pre-rendered fragments it deliberately passes to the shell. Normal text fields remain escaped by `html/template`.
 
-## 6. Rendering model
+## 6. Rendering and integration model
 
 The primary rendering path uses `html/template` from the standard library.
 
@@ -151,11 +160,47 @@ The shell renders:
 - workspace container;
 - optional PWA metadata/registration hook.
 
-The shell does not own application route registration. A consuming application may call a renderer from its own `net/http` handlers or another compatible server layer.
+The shell does not register application routes and does not know a framework request context.
+
+The primary API should render to an `io.Writer` (or equivalent standard-library boundary) from explicit page data. This keeps the shell usable from `net/http`, Gin, Echo, Chi, Fiber, Beego or another stack without carrying adapters or their dependencies.
+
+Optional convenience helpers may return `http.Handler` only for shell-owned static/PWA assets because `net/http` is standard library. They must not become an application router.
 
 No client-side templating is required.
 
-## 7. Responsive layout
+## 7. Why there is no adapter layer
+
+Framework-specific adapters appear to increase compatibility but actually couple the component to framework APIs, versions and transitive dependencies.
+
+`go-app-shell` instead targets the smaller common denominator:
+
+```text
+application/framework handler
+          |
+          | construct presentation Page
+          v
+shell.Render(io.Writer, Page)
+```
+
+A consuming application's existing router remains untouched.
+
+This provides broader compatibility with less code than maintaining adapters for each framework.
+
+## 8. Why there is no plugin/runtime engine
+
+V0.1 has no global `Engine`, plugin registry, dependency/service container or runtime extension mechanism.
+
+Extensibility comes from ordinary Go composition:
+
+- the application decides what page fragments to render;
+- the application owns its handlers/services/data;
+- shell configuration is explicit;
+- theming uses CSS custom-property overrides;
+- optional richer client behaviour can be added by the consuming application independently.
+
+This prevents presentation infrastructure becoming a second application framework.
+
+## 9. Responsive layout
 
 The layout is one semantic document structure with CSS adaptation.
 
@@ -196,7 +241,7 @@ CSS Grid/Flexbox provide macro layout. CSS custom properties provide tokens. Con
 
 There is no JavaScript resize controller.
 
-## 8. Navigation model
+## 10. Navigation model
 
 Navigation is presentation metadata supplied by the application.
 
@@ -211,7 +256,7 @@ The shell does not decide which items a user may see. The application passes onl
 
 With JavaScript unavailable, all supplied navigation remains reachable through ordinary links. Compact presentation must degrade to an accessible static navigation mechanism rather than making navigation dependent on script.
 
-## 9. Workspace modes
+## 11. Workspace modes
 
 V0.1 needs only two workspace concepts:
 
@@ -229,7 +274,7 @@ The shell does not maintain selected-record state. Selection remains URL/request
 
 This preserves normal browser behaviour, deep links, back/forward navigation and no-JavaScript operation.
 
-## 10. Presentation vocabulary
+## 12. Presentation vocabulary
 
 V0.1 deliberately avoids becoming a full design system.
 
@@ -257,7 +302,7 @@ danger
 
 These are presentation choices only. The shell never maps business values to them.
 
-## 11. Design tokens and theming
+## 13. Design tokens and theming
 
 A deliberately small CSS custom-property set should cover the shell:
 
@@ -284,7 +329,9 @@ The default theme uses system fonts only.
 
 Consumers override documented tokens after loading the embedded/default stylesheet. They should not need to fork the shell CSS for ordinary branding.
 
-## 12. Accessibility boundary
+There is no theme plugin interface and no shell/theme version negotiation. Theme customisation is data/CSS, not a runtime subsystem.
+
+## 14. Accessibility boundary
 
 The shell targets WCAG 2.2 AA for the markup and defaults it owns.
 
@@ -309,7 +356,7 @@ The consuming application owns:
 - contrast of custom theme overrides;
 - accessibility of third-party/application widgets embedded inside the workspace.
 
-## 13. JavaScript boundary
+## 15. JavaScript boundary
 
 Core shell operation requires zero JavaScript.
 
@@ -322,7 +369,7 @@ There is no shell client-side state model, SPA router, validation engine, data-f
 
 The V0.1 first-party uncompressed CSS plus optional JavaScript budget is at most 32 KiB, excluding icons and application content.
 
-## 14. PWA model
+## 16. PWA model
 
 PWA support is optional and configured by the consuming application.
 
@@ -349,7 +396,7 @@ The consuming application decides where these are mounted.
 
 PWA support must not change the application's routing, authentication or data model.
 
-## 15. Service-worker safety boundary
+## 17. Service-worker safety boundary
 
 The service worker is intentionally conservative.
 
@@ -371,7 +418,7 @@ It must not generically:
 
 Any richer offline capability belongs to the consuming application's threat model and business design.
 
-## 16. Security and trust boundary
+## 18. Security and trust boundary
 
 The shell is not a security or authorisation component.
 
@@ -389,7 +436,7 @@ The component must not expose helpers that encourage arbitrary untrusted strings
 
 Security headers, CSRF, authentication, sessions, authorisation and content-security policy remain application/server responsibilities because deployment needs differ.
 
-## 17. Failure behaviour
+## 19. Failure behaviour
 
 - invalid shell configuration: renderer construction/configuration returns an explicit error;
 - invalid or unsafe PWA precache URL: refuse configuration rather than broaden cache scope;
@@ -399,7 +446,7 @@ Security headers, CSRF, authentication, sessions, authorisation and content-secu
 - service worker unavailable/fails registration: ordinary web application remains usable;
 - offline and uncached business route requested: offline fallback or browser failure is shown; shell must not synthesize stale business data.
 
-## 18. Dependencies and runtime
+## 20. Dependencies and runtime
 
 V0.1 baseline:
 
@@ -408,16 +455,21 @@ V0.1 baseline:
 - embedded templates/CSS/optional JS via `embed`;
 - no runtime CDN/network dependency;
 - no Node/npm/toolchain dependency;
-- no frontend code-generation dependency.
+- no frontend code-generation dependency;
+- no router/framework adapters;
+- no database drivers;
+- no auth/RBAC package;
+- no theme package dependency.
 
 The component is linked into the consuming application binary. It is not a service and has no daemon/runtime of its own.
 
-## 19. Neutral reference application
+## 21. Neutral reference application
 
 `cmd/app-shell-demo` exists to prove the shell rather than to become a product.
 
 It should contain neutral fictional data such as generic records/items and demonstrate:
 
+- standard `net/http` integration;
 - top header;
 - grouped navigation;
 - single workspace;
@@ -432,7 +484,9 @@ It should contain neutral fictional data such as generic records/items and demon
 
 It must not embed CRM, ERP, cyber, risk, finance, approval or workflow semantics.
 
-## 20. Test strategy
+The demo is proof of the smallest integration surface, not a required hosting framework.
+
+## 22. Test strategy
 
 ### Go package tests
 
@@ -442,6 +496,10 @@ Automated tests should cover at minimum:
 - semantic shell landmarks;
 - skip-link presence;
 - current navigation semantics;
+- two independent renderer instances do not share mutable state;
+- renderer writes to standard `io.Writer`/standard-library boundary;
+- no framework adapter packages or framework dependencies enter the module;
+- no global plugin/service registry is required;
 - no accidental domain vocabulary in public API/neutral fixtures;
 - theme-token output contract;
 - embedded asset availability;
@@ -464,6 +522,7 @@ native demo build
 exact version contract
 GOOS=linux GOARCH=arm64 build
 rendering acceptance
+framework-neutral integration acceptance
 PWA boundary acceptance
 no-business-logic boundary acceptance
 ```
@@ -498,23 +557,28 @@ Also check:
 - offline static shell/fallback where service workers are supported;
 - JavaScript disabled for core web flow.
 
-## 21. Known limitations
+## 23. Known limitations
 
 - V0.1 is not a complete visual component library;
 - no generic data grid, charts, modal system or rich client widgets;
 - no generic offline business-data mode;
+- no framework-specific convenience adapter in V0.1;
 - PWA install UX varies by browser/platform and cannot be normalised by the library;
 - shell CSS cannot guarantee accessibility of arbitrary caller content or custom theme overrides;
 - visual/browser acceptance remains partly human because CSS reflow and browser rendering are not fully represented by Go tests;
 - 320 CSS pixels is the V0.1 lower acceptance width, not a promise for arbitrarily narrower displays;
 - advanced interactions may be added by consuming applications independently, including optional HTMX, provided they preserve their own accessibility and security contracts.
 
-## 22. Acceptance-to-evidence map
+## 24. Acceptance-to-evidence map
 
 | Requirement | Planned evidence |
 |---|---|
 | public cross-repository reuse | external/import compilation test or demo module build |
 | no frontend toolchain/runtime dependency | `go.mod`, CI build and repository inspection |
+| framework-neutral integration | standard `net/http` demo + dependency/source contract test |
+| no adapter proliferation | module/repository source contract |
+| independent renderer instances | concurrency/state-isolation test |
+| no plugin/service runtime | public API/source contract |
 | 320px compact usability | human responsive acceptance + shell overflow contract |
 | phone portrait one-pane behaviour | human acceptance + CSS contract |
 | tablet/window reflow | human responsive acceptance |
@@ -532,25 +596,14 @@ Also check:
 | PWA disabled cleanly | render/handler tests |
 | static allowlist only | PWA configuration/service-worker tests |
 | no mutation queue/replay | service-worker source contract test |
-| offline static fallback | PWA demo/manual browser acceptance |
-| zero required core JS | source/HTML contract test |
-| <=32 KiB first-party asset budget | automated byte-count test |
-| WCAG-targeted shell defaults | semantic/CSS tests + human keyboard/zoom review |
-| neutral, domain-free demo | vocabulary/boundary test + review |
-| ARM64 portability | CI cross-build |
-| no business logic/domain semantics | public API/source boundary test + code-derived EDD comparison |
-| design/code alignment | `generated/EDD.md` + `generated/COMPARISON.md` pinned to release commit |
+| offline static fallback only | service-worker contract + human offline check |
+| zero required JS | render/source contract |
+| <=32 KiB first-party asset budget | CI size test |
+| WCAG-targeted defaults | render/CSS tests + human acceptance |
+| neutral/no-domain reference | source vocabulary boundary test + review |
+| format/vet/race/native/version/ARM64 | `.github/workflows/test.yml` |
+| code/design alignment | `generated/EDD.md` + `generated/COMPARISON.md` pinned to source |
 
-## 23. Release gate
+## 25. Definition of done
 
-V0.1 is releasable only when:
-
-1. PRD/EDD are still aligned;
-2. no business/domain semantics have entered the public package;
-3. automated CI gates are green;
-4. the full human responsive/accessibility matrix is accepted;
-5. ordinary no-JavaScript operation is accepted;
-6. optional PWA mode is installable/offline-capable on at least one supporting desktop browser and one supporting mobile browser while ordinary web mode remains unaffected;
-7. generated EDD evidence is pinned to the release implementation;
-8. comparison contains no unexplained mismatch;
-9. README, VERSION, CHANGELOG and RELEASE material match the implementation.
+V0.1 is complete when all PRD acceptance criteria have evidence, the public package remains a framework-neutral presentation component rather than an admin framework, two independent renderer instances can coexist without global state, the neutral demo proves compact and wide operation plus optional PWA mode, browser/accessibility acceptance passes, and code-derived comparison contains no unexplained mismatch or leaked business/framework responsibility.

@@ -1,0 +1,49 @@
+GO-APP-SHELL — V0.1 DESIGN
+
+ consuming Go application
+ routes / auth / data / business logic
+              |
+              | presentation data only
+              v
+ +-------------------------------+
+ |          go-app-shell         |
+ |                               |
+ | public Go package             |
+ | html/template renderer        |
+ | navigation metadata           |
+ | single + list/detail layout   |
+ | design tokens / embedded CSS  |
+ | optional PWA metadata         |
+ +---------------+---------------+
+                 |
+        +--------+--------+
+        |                 |
+        v                 v
+ server HTML         embedded assets
+ semantic markup     shell.css
+ no-JS core          optional pwa.js
+                     optional service-worker.js
+        |                 |
+        +--------+--------+
+                 |
+                 v
+              browser
+                 |
+       +---------+---------+
+       |                   |
+    compact              wide
+  320px+ portrait    persistent nav
+  one useful pane    flexible workspace
+       |                   |
+       +---------+---------+
+                 |
+                 v
+      same URLs / same application
+
+ Optional PWA boundary:
+   manifest + static allowlist + offline fallback only
+
+ Explicitly not owned here:
+   business logic / domain semantics / auth decisions / permissions /
+   persistence / workflows / application state / offline business data /
+   mutation queues / SPA runtime / frontend framework

@@ -25,7 +25,10 @@ The component is intended to be reusable across unrelated business applications 
 ## In scope
 
 - a public importable Go package;
+- framework-neutral rendering through standard Go interfaces rather than framework-specific adapters;
+- instance-based renderer/configuration with no required global engine, service container or mutable plugin registry;
 - server-rendered HTML using Go's standard web/template stack;
+- explicit presentation slots for application header, navigation, page context, actions and workspace content;
 - one responsive application shell from 320 CSS pixels upward;
 - continuous reflow based on available space rather than separate mobile and desktop applications;
 - compact phone portrait presentation;
@@ -65,10 +68,13 @@ The component is intended to be reusable across unrelated business applications 
 - authentication or authorisation decisions;
 - role, permission or entitlement models;
 - application routing decisions;
+- framework-specific router/context adapters;
 - business validation;
 - database access or persistence;
 - application state management;
 - background jobs, queues or workflow engines;
+- a global application engine, dependency/service container or plugin runtime;
+- theme plugins with version coupling to the shell runtime;
 - client-side business behaviour;
 - a JavaScript SPA router or application runtime;
 - React, Vue, Svelte, Angular or another frontend framework;
@@ -88,32 +94,35 @@ The component is intended to be reusable across unrelated business applications 
 
 1. another Go module can import the reusable package directly; the public implementation is not hidden behind Go's `internal` import boundary;
 2. a consuming application can build and run with `go build` alone, with no Node/npm/code-generation step and no runtime third-party dependency required by the shell;
-3. the reference application remains usable at 320 CSS pixels wide without shell-generated whole-page horizontal scrolling;
-4. at common phone portrait widths, primary navigation is compact/collapsible and the workspace presents one useful pane at a time rather than squeezing desktop columns together;
-5. at tablet/small-window widths, navigation and workspace reflow without a separate mobile template or URL;
-6. at desktop widths, primary navigation can remain visible beside a flexible main workspace;
-7. when list/detail mode is requested and enough width is available, the list and selected detail can be shown together; at compact widths the same content becomes a sequential list-or-detail experience;
-8. resizing continuously between compact and wide layouts does not require a page reload or device detection;
-9. the reference application remains functional at 200% browser zoom;
-10. shell-generated markup uses semantic header/navigation/main structure, exposes the current navigation item, provides a skip-to-content path and preserves logical keyboard focus order;
-11. shell-generated normal interactive controls use a practical minimum target size of 44 by 44 CSS pixels unless the control is naturally inline text;
-12. keyboard focus is plainly visible and presentation states are not conveyed by colour alone;
-13. all substantive reference-application navigation and form submission still works with JavaScript disabled;
-14. the default shell loads no external font, CDN stylesheet, CDN script or other presentation dependency;
-15. a consuming application can override the documented design tokens without forking or editing shell source;
-16. enabling PWA mode can produce a standards-shaped web-app manifest using caller-supplied name, start URL, scope, colours and icons;
-17. PWA mode is optional: disabling it removes the manifest/service-worker integration without changing ordinary application behaviour;
-18. the optional service worker caches only explicitly configured same-origin static URLs and an optional offline fallback; it does not automatically cache authenticated pages, arbitrary GET responses, API responses or mutations;
-19. non-GET requests are never intercepted for offline queuing or replay by the shell;
-20. if the network is unavailable, configured static shell assets and the configured offline fallback remain available where the browser supports service workers, while business-data behaviour remains the consuming application's responsibility;
-21. the shell's required core JavaScript budget is zero; any shipped JavaScript exists only for optional browser/PWA enhancement;
-22. the uncompressed first-party shell CSS plus optional PWA registration/service-worker JavaScript remains deliberately small, with a combined V0.1 budget of no more than 32 KiB excluding caller-supplied icons and application content;
-23. the default theme and reference markup target WCAG 2.2 AA, with the component documenting that caller content and caller theme overrides remain the consuming application's responsibility;
-24. the reference application demonstrates shell behaviour using neutral fictional content and contains no dependency on a specific business domain;
-25. CI proves `gofmt`, `go vet`, race-enabled tests, native build, exact version, Linux ARM64 build, rendering contracts, PWA boundary contracts and the component's no-business-logic boundary;
-26. release acceptance includes human browser review at approximately 320, 390, 768, 1024, 1366, 1920 and 2560 CSS-pixel widths, plus keyboard-only and 200% zoom review;
-27. code-derived EDD evidence is pinned to the released implementation and the design comparison contains no unexplained mismatch.
+3. the reference integration uses only standard Go rendering/HTTP interfaces and needs no Gin, Echo, Fiber, Chi, Beego or other framework adapter package;
+4. two independently configured shell renderer instances can coexist in one process without shared mutable global presentation state;
+5. application content is supplied through explicit presentation slots/values and does not require plugin registration or a service container;
+6. the reference application remains usable at 320 CSS pixels wide without shell-generated whole-page horizontal scrolling;
+7. at common phone portrait widths, primary navigation is compact/collapsible and the workspace presents one useful pane at a time rather than squeezing desktop columns together;
+8. at tablet/small-window widths, navigation and workspace reflow without a separate mobile template or URL;
+9. at desktop widths, primary navigation can remain visible beside a flexible main workspace;
+10. when list/detail mode is requested and enough width is available, the list and selected detail can be shown together; at compact widths the same content becomes a sequential list-or-detail experience;
+11. resizing continuously between compact and wide layouts does not require a page reload or device detection;
+12. the reference application remains functional at 200% browser zoom;
+13. shell-generated markup uses semantic header/navigation/main structure, exposes the current navigation item, provides a skip-to-content path and preserves logical keyboard focus order;
+14. shell-generated normal interactive controls use a practical minimum target size of 44 by 44 CSS pixels unless the control is naturally inline text;
+15. keyboard focus is plainly visible and presentation states are not conveyed by colour alone;
+16. all substantive reference-application navigation and form submission still works with JavaScript disabled;
+17. the default shell loads no external font, CDN stylesheet, CDN script or other presentation dependency;
+18. a consuming application can override the documented design tokens without forking or editing shell source;
+19. enabling PWA mode can produce a standards-shaped web-app manifest using caller-supplied name, start URL, scope, colours and icons;
+20. PWA mode is optional: disabling it removes the manifest/service-worker integration without changing ordinary application behaviour;
+21. the optional service worker caches only explicitly configured same-origin static URLs and an optional offline fallback; it does not automatically cache authenticated pages, arbitrary GET responses, API responses or mutations;
+22. non-GET requests are never intercepted for offline queuing or replay by the shell;
+23. if the network is unavailable, configured static shell assets and the configured offline fallback remain available where the browser supports service workers, while business-data behaviour remains the consuming application's responsibility;
+24. the shell's required core JavaScript budget is zero; any shipped JavaScript exists only for optional browser/PWA enhancement;
+25. the uncompressed first-party shell CSS plus optional PWA registration/service-worker JavaScript remains deliberately small, with a combined V0.1 budget of no more than 32 KiB excluding caller-supplied icons and application content;
+26. the default theme and reference markup target WCAG 2.2 AA, with the component documenting that caller content and caller theme overrides remain the consuming application's responsibility;
+27. the reference application demonstrates shell behaviour using neutral fictional content and contains no dependency on a specific business domain;
+28. CI proves `gofmt`, `go vet`, race-enabled tests, native build, exact version, Linux ARM64 build, rendering contracts, PWA boundary contracts and the component's no-business-logic boundary;
+29. release acceptance includes human browser review at approximately 320, 390, 768, 1024, 1366, 1920 and 2560 CSS-pixel widths, plus keyboard-only and 200% zoom review;
+30. code-derived EDD evidence is pinned to the released implementation and the design comparison contains no unexplained mismatch.
 
 ## Definition of done
 
-V0.1 is done when the shell can be imported by an unrelated Go application, the neutral reference application demonstrates compact and wide layouts from one server-rendered structure, core operation remains useful without JavaScript, optional PWA support stays inside the static-shell/offline-fallback boundary, all automated gates pass, the human responsive/accessibility matrix is accepted, and code-derived design evidence confirms that no business logic or application-specific semantics entered the component.
+V0.1 is done when the shell can be imported by an unrelated Go application, integrated without a framework adapter or plugin runtime, the neutral reference application demonstrates compact and wide layouts from one server-rendered structure, core operation remains useful without JavaScript, optional PWA support stays inside the static-shell/offline-fallback boundary, all automated gates pass, the human responsive/accessibility matrix is accepted, and code-derived design evidence confirms that no business logic or application-specific semantics entered the component.

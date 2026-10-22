@@ -7,14 +7,19 @@ import (
 )
 
 func validPWA() PWAConfig {
-	return PWAConfig{
-		Name: "Example App", ShortName: "Example", StartURL: "/", Scope: "/", Display: "standalone",
-		ThemeColor: "#ffffff", BackgroundColor: "#ffffff",
-		Icons:        []PWAIcon{{Src: "/icon-192.png", Sizes: "192x192", Type: "image/png"}},
-		Precache:     []string{"/_app-shell/shell.css", "/_app-shell/pwa.js"},
-		OfflineURL:  "/offline",
-		CacheVersion: "build-1",
-	}
+	cfg := PWAConfig{}
+	cfg.Name = "Example App"
+	cfg.ShortName = "Example"
+	cfg.StartURL = "/"
+	cfg.Scope = "/"
+	cfg.Display = "standalone"
+	cfg.ThemeColor = "#ffffff"
+	cfg.BackgroundColor = "#ffffff"
+	cfg.Icons = []PWAIcon{{Src: "/icon-192.png", Sizes: "192x192", Type: "image/png"}}
+	cfg.Precache = []string{"/_app-shell/shell.css", "/_app-shell/pwa.js"}
+	cfg.OfflineURL = "/offline"
+	cfg.CacheVersion = "build-1"
+	return cfg
 }
 
 func TestManifest(t *testing.T) {

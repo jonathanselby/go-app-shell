@@ -32,6 +32,7 @@ type PWAConfig struct {
 	Precache        []string
 	OfflineURL      string
 	CacheName       string
+	CacheVersion    string
 }
 
 type manifest struct {
@@ -75,7 +76,7 @@ func ServiceWorker(cfg PWAConfig) ([]byte, error) {
 	}
 	urls = uniqueSorted(urls)
 	if autoCache {
-		cfg.CacheName, err = defaultCacheName(urls)
+		cfg.CacheName, err = defaultCacheName(urls, cfg.CacheVersion)
 		if err != nil {
 			return nil, err
 		}
@@ -122,9 +123,11 @@ self.addEventListener("fetch", event => {
 	return []byte(source), nil
 }
 
-func defaultCacheName(urls []string) (string, error) {
+func defaultCacheName(urls []string, cacheVersion string) (string, error) {
 	h := sha256.New()
 	_, _ = h.Write([]byte(Version))
+	_, _ = h.Write([]byte{0})
+	_, _ = h.Write([]byte(strings.TrimSpace(cacheVersion)))
 	_, _ = h.Write([]byte{0})
 	for _, name := range []string{"assets/shell.css", "assets/pwa.js"} {
 		b, err := embedded.ReadFile(name)

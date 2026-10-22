@@ -129,7 +129,7 @@ func (a *app) recordDetail(w http.ResponseWriter, r *http.Request) {
 		Detail: mustFragment(`
 <div class="gas-stack">
   <a class="gas-compact-only" href="/records">← Back to records</a>
-  <section class="gas-panel">
+  <section class="gas-panel gas-stack">
     <h2>{{.}}</h2>
     <dl class="gas-kv">
       <dt>Reference</dt><dd>{{.}}</dd>
@@ -164,28 +164,31 @@ func (a *app) formPost(w http.ResponseWriter, r *http.Request) {
 	label := r.Form.Get("label")
 	if strings.TrimSpace(label) == "" {
 		page := a.basePage("Form", "Correct the highlighted field and submit again.", "form")
+		page.DocumentTitle = "Error: " + page.DocumentTitle
 		page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: formContent(formView{Label: label, Invalid: true})}
 		a.renderStatus(w, page, http.StatusUnprocessableEntity)
 		return
 	}
 	page := a.basePage("Form", "The demo accepted the ordinary server-side form submission.", "form")
-	page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: template.HTML(`<div class="gas-notice gas-notice--success">Submission received by the reference application.</div><p><a href="/form">Return to form</a></p>`)}
+	page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: template.HTML(`<div class="gas-stack"><div class="gas-notice gas-notice--success">Submission received by the reference application.</div><p><a href="/form">Return to form</a></p></div>`)}
 	a.render(w, page)
 }
 
 func formContent(v formView) template.HTML {
 	return mustFragment(`
-{{if .Invalid}}<div class="gas-error-summary" role="alert"><strong>Check the form.</strong><a href="#label">Label is required.</a></div>{{end}}
-<form class="gas-form" method="post" action="/form">
-  <div class="gas-field">
-    <label for="label">Label</label>
-    <input id="label" name="label" value="{{.Label}}" required{{if .Invalid}} aria-invalid="true" aria-describedby="label-error"{{end}}>
-    {{if .Invalid}}<div id="label-error" class="gas-field-error">Enter a label.</div>{{else}}<div class="gas-help">Neutral demonstration text.</div>{{end}}
-  </div>
-  <div class="gas-field"><label for="kind">Kind</label><select id="kind" name="kind"><option>One</option><option>Two</option><option>Three</option></select></div>
-  <div class="gas-field"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>
-  <div class="gas-cluster"><button type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
-</form>`, v)
+<div class="gas-stack">
+  {{if .Invalid}}<div class="gas-error-summary" role="alert" tabindex="-1" autofocus><strong>Check the form.</strong><a href="#label">Label is required.</a></div>{{end}}
+  <form class="gas-form" method="post" action="/form">
+    <div class="gas-field">
+      <label for="label">Label</label>
+      <input id="label" name="label" value="{{.Label}}" required{{if .Invalid}} aria-invalid="true" aria-describedby="label-error"{{end}}>
+      {{if .Invalid}}<div id="label-error" class="gas-field-error">Enter a label.</div>{{else}}<div class="gas-help">Neutral demonstration text.</div>{{end}}
+    </div>
+    <div class="gas-field"><label for="kind">Kind</label><select id="kind" name="kind"><option>One</option><option>Two</option><option>Three</option></select></div>
+    <div class="gas-field"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>
+    <div class="gas-cluster"><button type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
+  </form>
+</div>`, v)
 }
 
 func mustFragment(source string, data any) template.HTML {
@@ -216,7 +219,19 @@ func (a *app) renderStatus(w http.ResponseWriter, page shell.Page, status int) {
 }
 
 func pwaConfig() shell.PWAConfig {
-	return shell.PWAConfig{Name: "App Shell Demo", ShortName: "Shell Demo", StartURL: "/", Scope: "/", Display: "standalone", ThemeColor: "#ffffff", BackgroundColor: "#ffffff", Icons: []shell.PWAIcon{{Src: "/icon.svg", Sizes: "any", Type: "image/svg+xml"}}, Precache: []string{"/_app-shell/shell.css", "/_app-shell/pwa.js", "/icon.svg"}, OfflineURL: "/offline"}
+	return shell.PWAConfig{
+		Name:            "App Shell Demo",
+		ShortName:       "Shell Demo",
+		StartURL:        "/",
+		Scope:           "/",
+		Display:         "standalone",
+		ThemeColor:      "#ffffff",
+		BackgroundColor: "#ffffff",
+		Icons:           []shell.PWAIcon{{Src: "/icon.svg", Sizes: "any", Type: "image/svg+xml"}},
+		Precache:        []string{"/_app-shell/shell.css", "/_app-shell/pwa.js", "/icon.svg"},
+		OfflineURL:      "/offline",
+		CacheVersion:    shell.Version,
+	}
 }
 
 func manifest(w http.ResponseWriter, _ *http.Request) {

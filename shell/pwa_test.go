@@ -10,8 +10,10 @@ func validPWA() PWAConfig {
 	return PWAConfig{
 		Name: "Example App", ShortName: "Example", StartURL: "/", Scope: "/", Display: "standalone",
 		ThemeColor: "#ffffff", BackgroundColor: "#ffffff",
-		Icons:    []PWAIcon{{Src: "/icon-192.png", Sizes: "192x192", Type: "image/png"}},
-		Precache: []string{"/_app-shell/shell.css", "/_app-shell/pwa.js"}, OfflineURL: "/offline",
+		Icons:        []PWAIcon{{Src: "/icon-192.png", Sizes: "192x192", Type: "image/png"}},
+		Precache:     []string{"/_app-shell/shell.css", "/_app-shell/pwa.js"},
+		OfflineURL:  "/offline",
+		CacheVersion: "build-1",
 	}
 }
 
@@ -99,11 +101,11 @@ func TestServiceWorkerDeterministic(t *testing.T) {
 }
 
 func TestDefaultCacheNameChangesWithCacheInputs(t *testing.T) {
-	a, err := defaultCacheName([]string{"/a"})
+	a, err := defaultCacheName([]string{"/a"}, "build-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := defaultCacheName([]string{"/b"})
+	b, err := defaultCacheName([]string{"/b"}, "build-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,6 +114,20 @@ func TestDefaultCacheNameChangesWithCacheInputs(t *testing.T) {
 	}
 	if !strings.HasPrefix(a, defaultCachePrefix) || len(a) != len(defaultCachePrefix)+12 {
 		t.Fatalf("unexpected cache name %q", a)
+	}
+}
+
+func TestDefaultCacheNameChangesWithApplicationVersion(t *testing.T) {
+	a, err := defaultCacheName([]string{"/icon.svg", "/offline"}, "build-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := defaultCacheName([]string{"/icon.svg", "/offline"}, "build-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a == b {
+		t.Fatal("default cache name did not change with application cache version")
 	}
 }
 

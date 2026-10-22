@@ -152,6 +152,7 @@ func TestAssetsAndSizeBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cssText := string(css)
 	for _, want := range []string{
 		"@media (min-width: 64rem)",
 		"overflow-x: auto",
@@ -159,14 +160,17 @@ func TestAssetsAndSizeBudget(t *testing.T) {
 		"@media print",
 		"@media (prefers-color-scheme: dark)",
 		".gas-error-summary",
-		"[aria-invalid=\"true\"]",
+		".gas-field [aria-invalid=\"true\"]",
 		".gas-badge",
 		".gas-kv",
 		".gas-compact-only",
 	} {
-		if !strings.Contains(string(css), want) {
+		if !strings.Contains(cssText, want) {
 			t.Fatalf("CSS contract missing %q", want)
 		}
+	}
+	if strings.Contains(cssText, "\n[aria-invalid=\"true\"]") {
+		t.Fatal("invalid-field styling escaped the gas-field boundary")
 	}
 }
 
@@ -191,7 +195,7 @@ func TestNoBusinessVocabularyOrClientRuntimeInCoreSource(t *testing.T) {
 			if strings.Contains(lower, term) {
 				t.Fatalf("core source %s contains prohibited vocabulary/runtime marker %q", filepath.Base(path), term)
 			}
-		}
+	}
 	}
 }
 

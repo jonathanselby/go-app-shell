@@ -90,7 +90,7 @@ button:hover, .gas-button:hover { background: var(--gas-surface-raised); }
 .gas-notice--danger::before { content: "Attention:"; }
 .gas-error-summary { border-left-color: var(--gas-danger); display: grid; gap: var(--gas-space-2); }
 .gas-field-error { color: var(--gas-danger); font-weight: 650; }
-[aria-invalid="true"] { border-color: var(--gas-danger) !important; box-shadow: 0 0 0 1px var(--gas-danger); }
+.gas-field [aria-invalid="true"] { border-color: var(--gas-danger); box-shadow: 0 0 0 1px var(--gas-danger); }
 
 .gas-badge { display: inline-flex; align-items: center; min-height: 1.5rem; padding: .1rem .45rem; border: 1px solid var(--gas-border); border-radius: 999px; font-size: .82rem; font-weight: 650; line-height: 1.2; color: var(--gas-text); background: var(--gas-surface-raised); }
 .gas-badge--info { border-color: var(--gas-info); }

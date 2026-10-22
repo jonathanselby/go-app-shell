@@ -232,7 +232,6 @@ func TestNoBusinessVocabularyOrClientRuntimeInCoreSource(t *testing.T) {
 			if strings.Contains(lower, term) {
 				t.Fatalf("core source %s contains prohibited vocabulary/runtime marker %q", filepath.Base(path), term)
 			}
-		}
 	}
 }
 

@@ -19,6 +19,8 @@ type Config struct {
 	AssetBase             string
 	Language              string
 	AdditionalStylesheets []string
+	ThemeColorLight       string
+	ThemeColorDark        string
 }
 
 type Renderer struct {
@@ -98,6 +100,12 @@ func New(cfg Config) (*Renderer, error) {
 	cfg.AssetBase = strings.TrimSuffix(cfg.AssetBase, "/")
 	if cfg.Language == "" {
 		cfg.Language = "en"
+	}
+	if cfg.ThemeColorLight == "" {
+		cfg.ThemeColorLight = "#ffffff"
+	}
+	if cfg.ThemeColorDark == "" {
+		cfg.ThemeColorDark = "#0d1117"
 	}
 	for _, u := range cfg.AdditionalStylesheets {
 		if strings.TrimSpace(u) == "" {

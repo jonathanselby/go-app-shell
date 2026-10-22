@@ -35,7 +35,17 @@ func TestRenderSemanticShellAndEscapesText(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := b.String()
-	for _, want := range []string{`<header class="gas-header">`, `<nav class="gas-nav" aria-label="Primary">`, `<main id="main-content"`, `class="gas-skip-link"`, `aria-current="page"`} {
+	for _, want := range []string{
+		`<header class="gas-header">`,
+		`<nav class="gas-nav" aria-label="Primary">`,
+		`<main id="main-content"`,
+		`class="gas-skip-link"`,
+		`class="gas-nav-scrim"`,
+		`aria-current="page"`,
+		`name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)"`,
+		`name="theme-color" content="#0d1117" media="(prefers-color-scheme: dark)"`,
+		`viewport-fit=cover`,
+	} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %q", want)
 		}
@@ -45,6 +55,20 @@ func TestRenderSemanticShellAndEscapesText(t *testing.T) {
 	}
 	if !strings.Contains(html, `&lt;script&gt;alert(1)&lt;/script&gt;`) {
 		t.Fatal("escaped title missing")
+	}
+}
+
+func TestThemeColorsCanBeConfigured(t *testing.T) {
+	r, err := New(Config{ThemeColorLight: "#fefefe", ThemeColorDark: "#101010"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b bytes.Buffer
+	if err := r.Render(&b, testPage()); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(b.String(), `content="#fefefe"`) || !strings.Contains(b.String(), `content="#101010"`) {
+		t.Fatal("configured browser theme colors missing")
 	}
 }
 
@@ -154,12 +178,17 @@ func TestAssetsAndSizeBudget(t *testing.T) {
 	}
 	cssText := string(css)
 	for _, want := range []string{
+		"@media (min-width: 48rem)",
 		"@media (min-width: 64rem)",
 		"overflow-x: auto",
 		"min-height: 2.75rem",
 		"@media print",
 		"@media (prefers-color-scheme: dark)",
-		".gas-error-summary",
+		"@view-transition",
+		".gas-nav-scrim",
+		".gas-button--primary",
+		".gas-panel > :first-child",
+		"color-mix(in srgb, var(--gas-success)",
 		".gas-field [aria-invalid=\"true\"]",
 		".gas-badge",
 		".gas-kv",

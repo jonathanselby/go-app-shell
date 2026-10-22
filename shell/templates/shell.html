@@ -3,7 +3,9 @@
 <html lang="{{.Config.Language}}">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="{{.Config.ThemeColorLight}}" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="{{.Config.ThemeColorDark}}" media="(prefers-color-scheme: dark)">
   <title>{{.Page.DocumentTitle}}</title>
   <link rel="stylesheet" href="{{.Config.AssetBase}}/shell.css">
   {{range .Config.AdditionalStylesheets}}<link rel="stylesheet" href="{{.}}">{{end}}
@@ -23,6 +25,7 @@
       {{with .Page.App.UserLabel}}<span class="gas-user-label">{{.}}</span>{{end}}
     </div>
   </header>
+  <label class="gas-nav-scrim" for="gas-nav-toggle" aria-hidden="true"></label>
   <div class="gas-layout">
     <nav class="gas-nav" aria-label="Primary">
       {{range .Page.Navigation}}

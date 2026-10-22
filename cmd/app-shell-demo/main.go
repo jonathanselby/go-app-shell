@@ -12,6 +12,10 @@ import (
 	"github.com/jonathanselby/go-app-shell/shell"
 )
 
+// demoBuildVersion represents the consuming application's build version.
+// Real applications can inject a Git SHA or release identifier with -ldflags.
+var demoBuildVersion = "dev"
+
 type app struct {
 	renderer *shell.Renderer
 	pwa      bool
@@ -92,7 +96,7 @@ func (a *app) overview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	page := a.basePage("Overview", "A deliberately neutral application showing the reusable shell rather than a business domain.", "overview")
-	page.Actions = template.HTML(`<a class="gas-button" href="/form">Open form</a>`)
+	page.Actions = template.HTML(`<a class="gas-button gas-button--primary" href="/form">Open form</a>`)
 	page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: template.HTML(`
 <div class="gas-stack">
   <div class="gas-notice gas-notice--info">This page is server-rendered and remains useful without JavaScript.</div>
@@ -109,7 +113,7 @@ func (a *app) overview(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *app) records(w http.ResponseWriter, _ *http.Request) {
-	page := a.basePage("Records", "Select an item. Wide screens show list and detail together; compact screens keep one useful pane.", "records")
+	page := a.basePage("Records", "Select an item. Tablet and desktop layouts show list and detail together; compact screens keep one useful pane.", "records")
 	page.Workspace = shell.Workspace{Mode: shell.WorkspaceListDetail, CompactPane: shell.CompactList, List: recordList(""), Detail: template.HTML(`<div class="gas-empty">Select a record to view its detail.</div>`)}
 	a.render(w, page)
 }
@@ -186,7 +190,7 @@ func formContent(v formView) template.HTML {
     </div>
     <div class="gas-field"><label for="kind">Kind</label><select id="kind" name="kind"><option>One</option><option>Two</option><option>Three</option></select></div>
     <div class="gas-field"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>
-    <div class="gas-cluster"><button type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
+    <div class="gas-cluster"><button class="gas-button--primary" type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
   </form>
 </div>`, v)
 }
@@ -230,7 +234,7 @@ func pwaConfig() shell.PWAConfig {
 		Icons:           []shell.PWAIcon{{Src: "/icon.svg", Sizes: "any", Type: "image/svg+xml"}},
 		Precache:        []string{"/_app-shell/shell.css", "/_app-shell/pwa.js", "/icon.svg"},
 		OfflineURL:      "/offline",
-		CacheVersion:    shell.Version,
+		CacheVersion:    demoBuildVersion,
 	}
 }
 

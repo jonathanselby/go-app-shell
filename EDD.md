@@ -100,16 +100,11 @@ Compact uses zero-JS navigation, one useful list/detail pane, full-width forms a
 
 The shell styles ordinary semantic HTML through a deliberately small class vocabulary.
 
-V0.1 includes:
+V0.1 includes panels/stacks/clusters, empty states, generic notices/badges, form help/error/error-summary presentation, ordinary lists/tables, key-value `<dl>` presentation and compact/wide visibility helpers.
 
-- panels, stacks, clusters and empty states;
-- notices and generic badges/status chips;
-- form layout, help, field-error and error-summary presentation;
-- ordinary lists and table wrappers;
-- key-value `<dl>` presentation;
-- compact/wide visibility helpers.
+There are intentionally no business/data builders such as `NewTable`, record binding, workflow state or validation logic.
 
-There are intentionally no business/data builders such as `NewTable`, `AddColumn`, record binding, workflow state or validation logic.
+Invalid-control styling is scoped beneath `.gas-field` so the shell does not restyle unrelated controls. The consuming application decides when validation fails. It may focus an application-rendered error summary using native HTML (`tabindex="-1" autofocus`); the shell never performs focus changes automatically.
 
 ## 10. Light/dark theming
 
@@ -121,9 +116,9 @@ Print explicitly returns to a light palette.
 
 ## 11. Accessibility
 
-The shell owns semantic landmarks, skip link, logical order, visible `:focus-visible`, current-navigation semantics, 44px practical target sizing, non-colour-only notices/badges, `aria-invalid` styling hooks, 200% zoom reflow, reduced-motion respect and useful semantic markup when CSS is missing.
+The shell owns semantic landmarks, skip link, logical order, visible `:focus-visible`, current-navigation semantics, 44px practical target sizing, non-colour-only notices/badges, scoped `aria-invalid` styling hooks, 200% zoom reflow, reduced-motion respect and useful semantic markup when CSS is missing.
 
-The application owns validation decisions, field messages, content hierarchy inside fragments, image alternatives, custom widgets and contrast of its overrides.
+The application owns validation decisions, error-summary focus decisions, field messages, content hierarchy inside fragments, image alternatives, custom widgets and contrast of its overrides.
 
 ## 12. Progressive Web App boundary
 
@@ -137,11 +132,14 @@ If the caller does not provide `CacheName`, the shell derives a deterministic ca
 
 - `shell.Version`;
 - embedded `shell.css` and `pwa.js` bytes;
-- the normalised precache/offline URL set.
+- the normalised precache/offline URL set;
+- optional caller-supplied `CacheVersion`.
 
-This causes shell asset/config changes to generate a new cache identity. During activation the worker deletes only older caches with the shell-owned `go-app-shell-` prefix.
+`CacheVersion` exists only for application-owned precached resources whose contents can change while their URLs remain stable. A build or release identifier is sufficient. Fingerprinted URLs remain an equally valid alternative.
 
-If the caller provides an explicit cache name, the shell respects it and disables prefix-based cleanup so consumer-owned/unrelated caches cannot be deleted.
+The shell deliberately does **not** fetch/hash application-owned resource contents or own the application's build system.
+
+During activation the worker deletes only older caches with the shell-owned `go-app-shell-` prefix. If the caller provides an explicit `CacheName`, the shell respects it and disables prefix cleanup.
 
 ## 13. Failure and degradation model
 
@@ -156,11 +154,13 @@ The shell never invents stale business data or application state. Failed/unsuppo
 
 ## 14. Neutral reference application
 
-The demo proves header/navigation, single/list-detail workspaces, ordinary server POST, generic form validation presentation, badges, key-value detail, responsive visibility, safe dynamic fragment templating, light/dark CSS and optional PWA plumbing. It contains no reusable business logic.
+The demo proves header/navigation, single/list-detail workspaces, ordinary server POST, generic form validation presentation, native error-summary focus after invalid POST, badges, key-value detail, responsive visibility, safe dynamic fragment templating, light/dark CSS and optional PWA plumbing. It contains no reusable business logic.
+
+The demo sets `CacheVersion` to the application version, demonstrating the expected stable-URL application-asset upgrade pattern.
 
 ## 15. Test strategy
 
-Automated evidence covers deterministic rendering, escaping, independent renderer instances, no-JS navigation, list/detail compact mode, dark-mode/presentation CSS contracts, asset budget, absence of domain/client-runtime vocabulary, manifest generation, same-origin PWA targets, GET-only service-worker behaviour, deterministic cache naming, old shell-cache cleanup boundaries and explicit custom-cache isolation.
+Automated evidence covers deterministic rendering, escaping, independent renderer instances, no-JS navigation, list/detail compact mode, dark-mode/presentation CSS contracts, asset budget, absence of domain/client-runtime vocabulary, manifest generation, same-origin PWA targets, GET-only service-worker behaviour, deterministic cache naming, cache-version invalidation, old shell-cache cleanup boundaries and explicit custom-cache isolation.
 
 CI on Go 1.27 adds `gofmt`, `go vet`, race tests, native build, exact version, Linux ARM64 build, HTTP/form acceptance, standard-library-only module contract, render benchmark and exact asset bytes.
 
@@ -183,7 +183,9 @@ Not a general widget/design-system library; no charts/data-grid/modal/timeline/p
 | form-error presentation | demo 422 HTTP acceptance + browser review |
 | asset/dependency budgets | `TestAssetsAndSizeBudget`, CI byte/module checks |
 | no business/client runtime in core | `TestNoBusinessVocabularyOrClientRuntimeInCoreSource` |
-| safe PWA upgrade | PWA cache-name/cleanup/custom-cache tests + manual installed upgrade |
+| shell-asset PWA upgrade | default cache hash + cleanup tests |
+| app-asset PWA upgrade | `TestDefaultCacheNameChangesWithApplicationVersion` + manual installed upgrade |
+| caller cache isolation | `TestCustomCacheNameDoesNotDeleteUnrelatedCaches` |
 | degraded CSS/no-JS operation | semantic markup tests + human acceptance |
 | ARM64 | CI cross-build |
 | supported Go baseline | GitHub CI Go 1.27 |

@@ -1,6 +1,6 @@
 # go-app-shell — Code-Derived Engineering Design
 
-**Implementation evidence:** `ba797b0a384168750f92044ec793ff268a3783a8`  
+**Implementation evidence:** `dcd82bd1d343f8785956f592bf1c189218bd2dde`  
 **Generated:** 2026-10-22
 
 ## Recovered implementation
@@ -22,35 +22,24 @@ caller application
 
 There is no client application runtime, virtual DOM, hooks, hydration, WASM renderer or shell-owned router.
 
-## Recovered layout model
+## Recovered layout and presentation
 
 - compact: 320–599 CSS px;
 - medium: 600–1023 CSS px;
 - desktop/wide: 1024 CSS px and above;
-- same semantic HTML structure at all sizes;
-- compact list/detail shows one useful pane;
-- desktop list/detail exposes both panes;
-- compact/wide visibility helpers are CSS only;
-- compact navigation remains zero-JavaScript.
+- same semantic structure at all sizes;
+- compact list/detail shows one useful pane; desktop exposes both;
+- compact navigation remains zero-JavaScript;
+- light/dark presentation uses CSS tokens and `prefers-color-scheme` only;
+- generic presentation includes notices, badges, form error/error summary, key-value `<dl>` and compact/wide visibility helpers;
+- invalid-control styling is scoped to `.gas-field`;
+- no Go-side business/data form or table builders exist.
 
-## Recovered presentation vocabulary
+## Recovered validation boundary
 
-The CSS remains deliberately small and generic:
+The application decides whether validation failed. The shell supplies presentation hooks only. The neutral demo returns a shell-rendered 422 page and demonstrates native zero-JS error-summary focus with `tabindex="-1" autofocus`; the shell itself performs no focus or validation behaviour.
 
-- panels/stacks/clusters/empty states;
-- generic notices and badges;
-- semantic form layout, help, field-error and error-summary presentation;
-- list and table wrappers;
-- key-value `<dl>` styling;
-- compact/wide visibility helpers.
-
-No Go-side data-aware form/table builder was introduced.
-
-## Recovered light/dark model
-
-Light tokens are defined at `:root`. Dark tokens override the same variables under `@media (prefers-color-scheme: dark)`. No JavaScript or theme registry is present. Print restores a light palette.
-
-## Recovered PWA boundary
+## Recovered PWA boundary and upgrade model
 
 The generated service worker:
 
@@ -58,33 +47,29 @@ The generated service worker:
 - intercepts GET only;
 - precaches only configured static URLs and optional offline fallback;
 - does not use IndexedDB, queues, background sync or mutation replay;
-- derives the default cache identity from `shell.Version`, embedded `shell.css`/`pwa.js` bytes and normalised cache inputs;
+- derives the automatic cache identity from `shell.Version`, embedded shell asset bytes, normalised cache inputs and optional `CacheVersion`;
+- uses `CacheVersion` only as caller-supplied invalidation input for app-owned resources with stable URLs;
 - deletes only older caches with the shell-owned `go-app-shell-` prefix;
 - disables prefix cleanup when a caller provides an explicit `CacheName`.
 
-This corrects the initial release-candidate stale-static-cache risk without broadening offline responsibility.
+The shell never fetches or hashes application-owned resource contents.
 
-## Recovered compatibility/support model
+## Recovered support model
 
-`go.mod` declares `go 1.22`, matching the lowest language/API level used by the current source/demo. GitHub CI remains configured for Go 1.27.x, which is the documented supported/tested baseline. Earlier compatible releases are not part of the support matrix.
-
-## Recovered demo safety pattern
-
-Dynamic record/form fragments are rendered with `html/template` before being passed into the explicitly trusted `template.HTML` shell slots. The shell trust boundary is unchanged; the demo no longer teaches dynamic string concatenation.
+`go.mod` declares `go 1.22`, matching the lowest language/API level used by the current source/demo. GitHub CI runs Go 1.27.x, which is the documented supported/tested baseline. Earlier compatible releases remain best-effort and unsupported.
 
 ## Automated evidence
 
-At implementation commit `ba797b0a384168750f92044ec793ff268a3783a8`:
+At implementation commit `dcd82bd1d343f8785956f592bf1c189218bd2dde` on GitHub Go 1.27.3:
 
-- local acceptance passed on an available Go 1.23 runner;
-- GitHub Go 1.27 acceptance passed;
-- Linux ARM64 build passed;
-- race tests passed;
+- format, vet and race tests passed;
 - standard-library-only dependency boundary passed;
-- shell CSS + optional PWA JS measured 11,607 bytes uncompressed, below the 32 KiB ceiling;
-- HTTP acceptance proved list/detail, manifest, GET-only service-worker boundary and shell-rendered form validation error state;
-- cache tests prove deterministic default identity, stale shell-cache cleanup boundary and caller-cache isolation.
+- neutral HTTP/form acceptance passed;
+- Linux ARM64 build passed;
+- shell CSS + optional PWA JS measured **11,607 bytes** uncompressed against the 32 KiB ceiling;
+- `BenchmarkRender` measured approximately **24,592 ns/op, 10,580 B/op and 138 allocs/op** on the GitHub AMD EPYC runner;
+- PWA tests prove same-origin/static-only boundaries, deterministic cache identities, shell-owned cleanup, app `CacheVersion` invalidation and caller-cache isolation.
 
 ## Human acceptance still required
 
-Human browser/visual acceptance remains open for responsive layout, light/dark visual quality, keyboard/zoom, CSS-off/no-JS, print and installed PWA upgrade behaviour.
+Human browser/visual acceptance remains open for responsive layout, light/dark visual quality, keyboard/zoom, CSS-off/no-JS, print, Android presentation and installed PWA behaviour.

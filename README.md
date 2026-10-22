@@ -109,11 +109,28 @@ V0.1 intentionally keeps the vocabulary small:
 
 These style ordinary semantic HTML. There is no data-aware Go table/form builder and no business validation logic.
 
+For server-side validation, the consuming application decides when a submission failed and may render the error summary with `tabindex="-1" autofocus` so keyboard focus moves to the summary without JavaScript. The demo shows this pattern; the shell does not focus anything automatically.
+
 ## PWA boundary
 
 PWA support is optional. The service worker may cache only explicitly configured same-origin static URLs plus an optional offline fallback. It does **not** cache arbitrary authenticated pages/API data and does not queue or replay mutations.
 
-When `CacheName` is not supplied, the generated cache name is derived from the shell version, embedded shell asset bytes and configured static cache inputs. An updated shell therefore produces a new shell-owned cache; activation removes only older `go-app-shell-` caches. If the application supplies its own cache name, the shell does not perform prefix cleanup.
+When `CacheName` is not supplied, the generated cache name is derived from the shell version, embedded shell asset bytes, configured static cache inputs and optional `CacheVersion`.
+
+Use `CacheVersion` when the consuming application precaches assets whose **content can change while their URL stays the same** — for example an application logo, offline page or application CSS. A normal build/release identifier is sufficient:
+
+```go
+cfg := shell.PWAConfig{
+    Name:         "Example",
+    Precache:     []string{"/app.css", "/logo.svg"},
+    OfflineURL:   "/offline",
+    CacheVersion: buildVersion,
+}
+```
+
+Changing `CacheVersion` generates a new shell-owned cache identity; activation removes only older `go-app-shell-` caches. Fingerprinted application URLs are equally valid and need no separate version field. If the application supplies its own `CacheName`, the shell respects it and performs no prefix cleanup.
+
+The shell never fetches or hashes application-owned asset contents itself.
 
 ## Degraded operation
 

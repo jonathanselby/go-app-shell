@@ -2,17 +2,20 @@
 
 [![test](https://github.com/jonathanselby/go-app-shell/actions/workflows/test.yml/badge.svg)](https://github.com/jonathanselby/go-app-shell/actions/workflows/test.yml)
 
-**A small application shell for serious Go web applications.**
+**0.1.0-dev — release candidate. A small application shell for serious Go web applications.**
 
 `go-app-shell` provides the presentation frame that substantial Go applications repeatedly need: responsive navigation, a flexible workspace, list/detail presentation, accessible defaults and optional conservative PWA plumbing.
 
 > **The shell owns presentation. The application owns meaning and behaviour.**
 
-It was created after the Garage repeatedly encountered the same gap while building larger Go applications. It is deliberately generic and intended for anyone who finds the same Go presentation primitive useful.
+It was created after the Garage repeatedly encountered the same gap while building larger Go applications. It is deliberately generic and intended for anyone who finds the same primitive useful.
 
 ## Why this exists
 
-Admin frameworks tend to absorb databases, auth, routing, plugins and data concepts into presentation. Frontend frameworks often replace JavaScript with another browser runtime: WASM, state systems, virtual DOMs, hooks, hydration and routing.
+The alternatives tend to grow in one of two directions:
+
+- admin frameworks absorb databases, auth, routing, plugins and business/data concepts into the presentation layer;
+- frontend frameworks replace JavaScript with another browser application runtime: WASM, state systems, virtual DOMs, hooks, hydration and routing.
 
 This component does neither.
 
@@ -50,13 +53,20 @@ go get github.com/jonathanselby/go-app-shell@latest
 
 ```go
 r, err := shell.New(shell.Config{AssetBase: "/_app-shell"})
-if err != nil { return err }
+if err != nil {
+    return err
+}
 
 page := shell.Page{
     App: shell.AppHeader{Name: "Example"},
-    Navigation: []shell.NavGroup{{Items: []shell.NavItem{{Label: "Overview", URL: "/", Current: true}}}},
+    Navigation: []shell.NavGroup{
+        {Items: []shell.NavItem{{Label: "Overview", URL: "/", Current: true}}},
+    },
     Title: "Overview",
-    Workspace: shell.Workspace{Mode: shell.WorkspaceSingle, Content: trustedApplicationHTML},
+    Workspace: shell.Workspace{
+        Mode: shell.WorkspaceSingle,
+        Content: trustedApplicationHTML,
+    },
 }
 
 return r.Render(w, page)
@@ -66,14 +76,19 @@ Normal text values are escaped by `html/template`. Application content slots use
 
 ## Assets
 
+Assets are embedded and exposed as `fs.FS`:
+
 ```go
 assets, _ := shell.AssetsFS()
-mux.Handle("GET /_app-shell/", http.StripPrefix("/_app-shell/", http.FileServer(http.FS(assets))))
+mux.Handle("GET /_app-shell/",
+    http.StripPrefix("/_app-shell/", http.FileServer(http.FS(assets))))
 ```
 
 The application may mount them through any web stack. No framework adapter is required.
 
 ## Layout
+
+The shell uses one semantic structure and CSS adaptation:
 
 ```text
 compact        320-599px
@@ -85,17 +100,26 @@ List/detail selection remains application/URL state. The shell only changes pres
 
 ## Presentation classes
 
-V0.1 intentionally keeps the vocabulary small: `gas-panel`, `gas-stack`, `gas-cluster`, generic notices, `gas-form`, `gas-field`, `gas-list`, `gas-table-wrap`, `gas-button`, `gas-empty` and `gas-muted`.
+V0.1 intentionally keeps the vocabulary small:
+
+- `gas-panel`, `gas-stack`, `gas-cluster`;
+- `gas-notice` plus `--info|success|warning|danger`;
+- `gas-form`, `gas-field`, `gas-help`;
+- `gas-list`;
+- `gas-table-wrap`;
+- `gas-button`, `gas-empty`, `gas-muted`.
 
 These style ordinary semantic HTML. There is no data-aware Go table/form builder.
 
 ## Theming
 
-Override documented `--gas-*` CSS custom properties in a stylesheet loaded after `shell.css`. No theme plugin/runtime is required.
+Override the documented `--gas-*` CSS custom properties in a stylesheet loaded after `shell.css`. No theme plugin/runtime is required.
 
 ## PWA boundary
 
-PWA support is optional. The service worker may cache only explicitly configured same-origin static URLs plus an optional offline fallback. It does **not** cache arbitrary authenticated pages/API data and does not queue or replay mutations.
+PWA support is optional. The component can generate a manifest and a conservative service worker.
+
+The service worker may cache only explicitly configured same-origin static URLs plus an optional offline fallback. It does **not** cache arbitrary authenticated pages/API data and does not queue or replay mutations.
 
 ## Degraded operation
 
@@ -112,6 +136,12 @@ go run ./cmd/app-shell-demo
 ```
 
 Open `http://127.0.0.1:8080`.
+
+Disable the optional PWA layer with:
+
+```bash
+go run ./cmd/app-shell-demo -no-pwa
+```
 
 ## Engineering gates
 
@@ -132,7 +162,7 @@ No business logic, domain semantics, auth/permissions, routing ownership, databa
 ## Engineering artefacts
 
 - `PRD.md` — product boundary and acceptance contract;
-- `EDD.md` — engineering design and degradation boundaries;
+- `EDD.md` — engineering design and failure/degradation boundaries;
 - `architecture.txt` — one-screen architecture view;
 - `shell/` — reusable package;
 - `cmd/app-shell-demo/` — neutral reference application;

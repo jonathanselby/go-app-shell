@@ -60,14 +60,21 @@ func TestServiceWorkerBoundary(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := string(b)
-	for _, want := range []string{`event.request.method !== "GET"`, `requestURL.origin !== self.location.origin`, `PRECACHE.includes(requestKey)`, `event.request.mode === "navigate"`} {
+	for _, want := range []string{
+		`event.request.method !== "GET"`,
+		`requestURL.origin !== self.location.origin`,
+		`PRECACHE.includes(requestKey)`,
+		`event.request.mode === "navigate"`,
+		`const CACHE_PREFIX = "go-app-shell-"`,
+		`key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME`,
+	} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("service worker boundary missing %q", want)
 		}
 	}
-	for _, forbidden := range []string{"indexedDB", "backgroundSync", `method === "POST"`, "queue.push"} {
+	for _, forbidden := range []string{"indexedDB", "backgroundSync", `method === "POST"`, "queue.push", "go-app-shell-v1"} {
 		if strings.Contains(s, forbidden) {
-			t.Fatalf("service worker contains forbidden generic offline behaviour %q", forbidden)
+			t.Fatalf("service worker contains forbidden generic offline behaviour/stale cache marker %q", forbidden)
 		}
 	}
 }
@@ -88,5 +95,38 @@ func TestServiceWorkerDeterministic(t *testing.T) {
 	}
 	if strings.Count(string(a), `"/b"`) != 1 {
 		t.Fatal("precache entries were not deduplicated")
+	}
+}
+
+func TestDefaultCacheNameChangesWithCacheInputs(t *testing.T) {
+	a, err := defaultCacheName([]string{"/a"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := defaultCacheName([]string{"/b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if a == b {
+		t.Fatal("default cache name did not change with cache inputs")
+	}
+	if !strings.HasPrefix(a, defaultCachePrefix) || len(a) != len(defaultCachePrefix)+12 {
+		t.Fatalf("unexpected cache name %q", a)
+	}
+}
+
+func TestCustomCacheNameDoesNotDeleteUnrelatedCaches(t *testing.T) {
+	cfg := validPWA()
+	cfg.CacheName = "consumer-owned-v7"
+	b, err := ServiceWorker(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, `const CACHE_NAME = "consumer-owned-v7"`) {
+		t.Fatal("custom cache name missing")
+	}
+	if !strings.Contains(s, `const CACHE_PREFIX = ""`) {
+		t.Fatal("custom cache should not enable shell-owned cache cleanup")
 	}
 }

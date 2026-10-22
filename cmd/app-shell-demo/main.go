@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"html/template"
@@ -14,6 +15,17 @@ import (
 type app struct {
 	renderer *shell.Renderer
 	pwa      bool
+}
+
+type record struct {
+	ID       string
+	Label    string
+	Selected bool
+}
+
+type formView struct {
+	Label   string
+	Invalid bool
 }
 
 func main() {
@@ -90,13 +102,13 @@ func (a *app) overview(w http.ResponseWriter, r *http.Request) {
   </section>
   <div class="gas-table-wrap">
     <table><thead><tr><th>Item</th><th>State</th><th>Updated</th></tr></thead>
-    <tbody><tr><td>Alpha</td><td>Ready</td><td>Today</td></tr><tr><td>Bravo</td><td>Review</td><td>Yesterday</td></tr></tbody></table>
+    <tbody><tr><td>Alpha</td><td><span class="gas-badge gas-badge--success">Ready</span></td><td>Today</td></tr><tr><td>Bravo</td><td><span class="gas-badge gas-badge--warning">Review</span></td><td>Yesterday</td></tr></tbody></table>
   </div>
 </div>`)}
 	a.render(w, page)
 }
 
-func (a *app) records(w http.ResponseWriter, r *http.Request) {
+func (a *app) records(w http.ResponseWriter, _ *http.Request) {
 	page := a.basePage("Records", "Select an item. Wide screens show list and detail together; compact screens keep one useful pane.", "records")
 	page.Workspace = shell.Workspace{Mode: shell.WorkspaceListDetail, CompactPane: shell.CompactList, List: recordList(""), Detail: template.HTML(`<div class="gas-empty">Select a record to view its detail.</div>`)}
 	a.render(w, page)
@@ -110,34 +122,37 @@ func (a *app) recordDetail(w http.ResponseWriter, r *http.Request) {
 	}
 	label := strings.ToUpper(id[:1]) + id[1:]
 	page := a.basePage("Records", "A generic list/detail workspace with URL-owned selection state.", "records")
-	page.Workspace = shell.Workspace{Mode: shell.WorkspaceListDetail, CompactPane: shell.CompactDetail, List: recordList(id), Detail: template.HTML(`<div class="gas-stack"><a href="/records">← Back to records</a><section class="gas-panel"><h2>` + template.HTMLEscapeString(label) + `</h2><p>This detail is application content rendered inside the shell workspace.</p><div class="gas-notice gas-notice--success">The selected record is available.</div></section></div>`)}
+	page.Workspace = shell.Workspace{
+		Mode:        shell.WorkspaceListDetail,
+		CompactPane: shell.CompactDetail,
+		List:        recordList(id),
+		Detail: mustFragment(`
+<div class="gas-stack">
+  <a class="gas-compact-only" href="/records">← Back to records</a>
+  <section class="gas-panel">
+    <h2>{{.}}</h2>
+    <dl class="gas-kv">
+      <dt>Reference</dt><dd>{{.}}</dd>
+      <dt>State</dt><dd><span class="gas-badge gas-badge--success">Available</span></dd>
+    </dl>
+    <div class="gas-notice gas-notice--success">The selected record is available.</div>
+  </section>
+</div>`, label),
+	}
 	a.render(w, page)
 }
 
 func recordList(selected string) template.HTML {
-	var b strings.Builder
-	b.WriteString(`<ul class="gas-list">`)
+	records := make([]record, 0, 3)
 	for _, id := range []string{"alpha", "bravo", "charlie"} {
-		label := strings.ToUpper(id[:1]) + id[1:]
-		b.WriteString(`<li><a href="/records/` + id + `"`)
-		if id == selected {
-			b.WriteString(` aria-current="true"`)
-		}
-		b.WriteString(`>` + label + `</a></li>`)
+		records = append(records, record{ID: id, Label: strings.ToUpper(id[:1]) + id[1:], Selected: id == selected})
 	}
-	b.WriteString(`</ul>`)
-	return template.HTML(b.String())
+	return mustFragment(`<ul class="gas-list">{{range .}}<li><a href="/records/{{.ID}}"{{if .Selected}} aria-current="true"{{end}}>{{.Label}}</a></li>{{end}}</ul>`, records)
 }
 
-func (a *app) form(w http.ResponseWriter, r *http.Request) {
+func (a *app) form(w http.ResponseWriter, _ *http.Request) {
 	page := a.basePage("Form", "Ordinary semantic HTML styled by the shell; validation and business meaning remain upstream.", "form")
-	page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: template.HTML(`
-<form class="gas-form" method="post" action="/form">
-  <div class="gas-field"><label for="label">Label</label><input id="label" name="label" required><div class="gas-help">Neutral demonstration text.</div></div>
-  <div class="gas-field"><label for="kind">Kind</label><select id="kind" name="kind"><option>One</option><option>Two</option><option>Three</option></select></div>
-  <div class="gas-field"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>
-  <div class="gas-cluster"><button type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
-</form>`)}
+	page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: formContent(formView{})}
 	a.render(w, page)
 }
 
@@ -146,8 +161,11 @@ func (a *app) formPost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid form", http.StatusBadRequest)
 		return
 	}
-	if strings.TrimSpace(r.Form.Get("label")) == "" {
-		http.Error(w, "label required", http.StatusBadRequest)
+	label := r.Form.Get("label")
+	if strings.TrimSpace(label) == "" {
+		page := a.basePage("Form", "Correct the highlighted field and submit again.", "form")
+		page.Workspace = shell.Workspace{Mode: shell.WorkspaceSingle, Content: formContent(formView{Label: label, Invalid: true})}
+		a.renderStatus(w, page, http.StatusUnprocessableEntity)
 		return
 	}
 	page := a.basePage("Form", "The demo accepted the ordinary server-side form submission.", "form")
@@ -155,10 +173,45 @@ func (a *app) formPost(w http.ResponseWriter, r *http.Request) {
 	a.render(w, page)
 }
 
+func formContent(v formView) template.HTML {
+	return mustFragment(`
+{{if .Invalid}}<div class="gas-error-summary" role="alert"><strong>Check the form.</strong><a href="#label">Label is required.</a></div>{{end}}
+<form class="gas-form" method="post" action="/form">
+  <div class="gas-field">
+    <label for="label">Label</label>
+    <input id="label" name="label" value="{{.Label}}" required{{if .Invalid}} aria-invalid="true" aria-describedby="label-error"{{end}}>
+    {{if .Invalid}}<div id="label-error" class="gas-field-error">Enter a label.</div>{{else}}<div class="gas-help">Neutral demonstration text.</div>{{end}}
+  </div>
+  <div class="gas-field"><label for="kind">Kind</label><select id="kind" name="kind"><option>One</option><option>Two</option><option>Three</option></select></div>
+  <div class="gas-field"><label for="notes">Notes</label><textarea id="notes" name="notes"></textarea></div>
+  <div class="gas-cluster"><button type="submit">Submit</button><a class="gas-button" href="/">Cancel</a></div>
+</form>`, v)
+}
+
+func mustFragment(source string, data any) template.HTML {
+	t := template.Must(template.New("fragment").Parse(source))
+	var b bytes.Buffer
+	if err := t.Execute(&b, data); err != nil {
+		panic(err)
+	}
+	return template.HTML(b.String())
+}
+
 func (a *app) render(w http.ResponseWriter, page shell.Page) {
+	a.renderStatus(w, page, http.StatusOK)
+}
+
+func (a *app) renderStatus(w http.ResponseWriter, page shell.Page, status int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if status != http.StatusOK {
+		w.WriteHeader(status)
+	}
 	if err := a.renderer.Render(w, page); err != nil {
-		http.Error(w, "render failed", http.StatusInternalServerError)
+		if status == http.StatusOK {
+			http.Error(w, "render failed", http.StatusInternalServerError)
+		} else {
+			log.Printf("render failed after status %d: %v", status, err)
+		}
 	}
 }
 

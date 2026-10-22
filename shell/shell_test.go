@@ -152,7 +152,18 @@ func TestAssetsAndSizeBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"@media (min-width: 64rem)", "overflow-x: auto", "min-height: 2.75rem", "@media print"} {
+	for _, want := range []string{
+		"@media (min-width: 64rem)",
+		"overflow-x: auto",
+		"min-height: 2.75rem",
+		"@media print",
+		"@media (prefers-color-scheme: dark)",
+		".gas-error-summary",
+		"[aria-invalid=\"true\"]",
+		".gas-badge",
+		".gas-kv",
+		".gas-compact-only",
+	} {
 		if !strings.Contains(string(css), want) {
 			t.Fatalf("CSS contract missing %q", want)
 		}

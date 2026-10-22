@@ -38,11 +38,16 @@ for _ in $(seq 1 50); do if curl -fsS "http://127.0.0.1:${port}/" >/tmp/gas-home
 curl -fsS "http://127.0.0.1:${port}/records/alpha" >/tmp/gas-detail.html
 curl -fsS "http://127.0.0.1:${port}/manifest.webmanifest" >/tmp/gas-manifest.json
 curl -fsS "http://127.0.0.1:${port}/service-worker.js" >/tmp/gas-sw.js
+form_status=$(curl -sS -o /tmp/gas-form-error.html -w '%{http_code}' -X POST -d 'label=%20%20&kind=One&notes=' "http://127.0.0.1:${port}/form")
 grep -q '<main id="main-content"' /tmp/gas-home.html
 grep -q 'aria-current="page"' /tmp/gas-home.html
 grep -q 'data-compact-pane="detail"' /tmp/gas-detail.html
+grep -q 'gas-compact-only' /tmp/gas-detail.html
 grep -q '"name": "App Shell Demo"' /tmp/gas-manifest.json
 grep -q 'event.request.method !== "GET"' /tmp/gas-sw.js
+grep -q 'CACHE_PREFIX' /tmp/gas-sw.js
+test "$form_status" = "422"
+grep -q 'gas-error-summary' /tmp/gas-form-error.html
 
 echo "8/8 render benchmark"
 go test -run '^$' -bench BenchmarkRender -benchmem ./shell

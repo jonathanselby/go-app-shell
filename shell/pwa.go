@@ -1,6 +1,8 @@
 package shell
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +10,8 @@ import (
 	"sort"
 	"strings"
 )
+
+const defaultCachePrefix = "go-app-shell-"
 
 type PWAIcon struct {
 	Src     string `json:"src"`
@@ -60,6 +64,7 @@ func Manifest(cfg PWAConfig) ([]byte, error) {
 }
 
 func ServiceWorker(cfg PWAConfig) ([]byte, error) {
+	autoCache := strings.TrimSpace(cfg.CacheName) == ""
 	cfg, err := validatePWA(cfg)
 	if err != nil {
 		return nil, err
@@ -69,12 +74,25 @@ func ServiceWorker(cfg PWAConfig) ([]byte, error) {
 		urls = append(urls, cfg.OfflineURL)
 	}
 	urls = uniqueSorted(urls)
+	if autoCache {
+		cfg.CacheName, err = defaultCacheName(urls)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	precache, _ := json.Marshal(urls)
 	offline, _ := json.Marshal(cfg.OfflineURL)
 	cacheName, _ := json.Marshal(cfg.CacheName)
+	cleanupPrefix := ""
+	if autoCache {
+		cleanupPrefix = defaultCachePrefix
+	}
+	cachePrefix, _ := json.Marshal(cleanupPrefix)
 
 	source := fmt.Sprintf(`"use strict";
 const CACHE_NAME = %s;
+const CACHE_PREFIX = %s;
 const PRECACHE = %s;
 const OFFLINE_URL = %s;
 self.addEventListener("install", event => {
@@ -82,7 +100,10 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 self.addEventListener("activate", event => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(Promise.all([
+    self.clients.claim(),
+    CACHE_PREFIX ? caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key)))) : Promise.resolve()
+  ]));
 });
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
@@ -97,8 +118,28 @@ self.addEventListener("fetch", event => {
     event.respondWith(fetch(event.request).catch(() => caches.match(OFFLINE_URL)));
   }
 });
-`, cacheName, precache, offline)
+`, cacheName, cachePrefix, precache, offline)
 	return []byte(source), nil
+}
+
+func defaultCacheName(urls []string) (string, error) {
+	h := sha256.New()
+	_, _ = h.Write([]byte(Version))
+	_, _ = h.Write([]byte{0})
+	for _, name := range []string{"assets/shell.css", "assets/pwa.js"} {
+		b, err := embedded.ReadFile(name)
+		if err != nil {
+			return "", err
+		}
+		_, _ = h.Write(b)
+		_, _ = h.Write([]byte{0})
+	}
+	for _, item := range urls {
+		_, _ = h.Write([]byte(item))
+		_, _ = h.Write([]byte{0})
+	}
+	sum := hex.EncodeToString(h.Sum(nil))
+	return defaultCachePrefix + sum[:12], nil
 }
 
 func validatePWA(cfg PWAConfig) (PWAConfig, error) {
@@ -113,9 +154,6 @@ func validatePWA(cfg PWAConfig) (PWAConfig, error) {
 	}
 	if cfg.Display == "" {
 		cfg.Display = "standalone"
-	}
-	if cfg.CacheName == "" {
-		cfg.CacheName = "go-app-shell-v1"
 	}
 	if !localPWAURL(cfg.StartURL) || !localPWAURL(cfg.Scope) {
 		return cfg, errors.New("PWA start URL and scope must be same-origin rooted URLs")

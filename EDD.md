@@ -4,7 +4,7 @@
 
 ## 1. Purpose
 
-Provide a small reusable Go presentation shell for substantial browser applications, responsive from phone portrait to large desktop, accessible by default, server-rendered, and optionally PWA-capable.
+Provide a small reusable Go presentation shell for substantial browser applications, responsive from phone portrait to large desktop, accessible by default, server-rendered, dark-mode capable, and optionally PWA-capable.
 
 > **The shell owns presentation. The application owns meaning and behaviour.**
 
@@ -22,8 +22,15 @@ Provide a small reusable Go presentation shell for substantial browser applicati
 10. No global engine/service/plugin runtime. Renderer instances are explicit and independent.
 11. V0.1 is an application frame, not a widget/data/admin framework.
 12. Optional PWA persistence is static-shell only; business data remains application-owned.
+13. Dark mode is a CSS-token presentation state, not an application runtime.
 
-## 3. Execution model
+## 3. Go support and compatibility
+
+Go 1.27+ is the supported/tested baseline. CI remains authoritative on Go 1.27.
+
+`go.mod` declares the lowest language/API level currently required by the source (`go 1.22`) so earlier compatible toolchains are not rejected for policy reasons alone. Earlier Go 1.x releases are outside the support matrix and are best-effort only.
+
+## 4. Execution model
 
 ```text
 request
@@ -49,28 +56,9 @@ browser
 
 A developer should be able to explain this path without hidden lifecycle or client-runtime machinery.
 
-## 4. Repository layout
-
-```text
-go-app-shell/
-├── .github/workflows/{test.yml,release-tag.yml}
-├── PRD.md / EDD.md / README.md / RELEASE.md / CHANGELOG.md / VERSION
-├── architecture.txt / LICENSE / go.mod
-├── scripts/acceptance.sh
-├── shell/
-│   ├── shell.go / pwa.go / tests
-│   ├── assets/{shell.css,pwa.js}
-│   └── templates/shell.html
-├── cmd/app-shell-demo/main.go
-├── examples/neutral-demo/README.md
-└── generated/{EDD.md,COMPARISON.md}
-```
-
-The reusable API is public package `shell`. The demo is acceptance evidence, not a dependency.
-
 ## 5. Public rendering API
 
-The core is an explicit renderer:
+The core remains an explicit renderer:
 
 ```go
 r, err := shell.New(shell.Config{AssetBase: "/_app-shell"})
@@ -79,17 +67,15 @@ err = r.Render(w, page)
 
 `Render` accepts `io.Writer`, keeping it independent of `net/http` and third-party frameworks.
 
-The model contains generic presentation concepts only: `AppHeader`, `NavGroup`, `NavItem`, `Page`, `Workspace`, `PWAHead`.
-
-Workspace modes are `single` and `list-detail`. Selected-record state remains URL/request/application state; the shell stores none.
+Workspace modes remain `single` and `list-detail`; selected-record state remains URL/request/application state.
 
 ## 6. Trusted HTML boundary
 
-Normal shell text is escaped by `html/template`. Application-owned content/action slots are `template.HTML`, making the trust decision explicit at the caller boundary. The shell exposes no helper that converts arbitrary untrusted strings into trusted HTML.
+Normal shell text is escaped by `html/template`. Application-owned content/action slots remain `template.HTML`, making the trust decision explicit at the caller boundary. The reference demo renders dynamic fragments through `html/template` rather than string concatenation, demonstrating the safe consumption pattern without adding a component framework.
 
 ## 7. Asset boundary and budgets
 
-CSS and optional registration JavaScript are embedded and exposed as `fs.FS`; the consuming application chooses how to mount them.
+CSS and optional registration JavaScript are embedded and exposed as `fs.FS`.
 
 ```text
 shell.css + optional pwa.js <= 32 KiB uncompressed
@@ -98,7 +84,7 @@ third-party runtime deps       0
 WASM                           0
 ```
 
-System fonts are the default.
+System fonts remain the default.
 
 ## 8. Responsive layout
 
@@ -108,37 +94,56 @@ System fonts are the default.
 1024px+     desktop/wide
 ```
 
-These are available-space ranges, not device identities.
+Compact uses zero-JS navigation, one useful list/detail pane, full-width forms and local table overflow. Desktop exposes persistent left navigation, a flexible workspace and simultaneous list/detail panes. `gas-compact-only` / `gas-wide-only` are presentation-only visibility helpers.
 
-Compact uses zero-JS navigation, one useful list/detail pane, full-width forms and local table overflow. Desktop exposes persistent left navigation, a flexible workspace and simultaneous list/detail panes. CSS Grid/Flexbox/media queries own adaptation; there is no resize controller or device sniffing.
+## 9. Presentation conventions
 
-## 9. Navigation
+The shell styles ordinary semantic HTML through a deliberately small class vocabulary.
 
-Navigation is caller-supplied metadata. The application decides what a user may see. Compact navigation uses native HTML/CSS state and current navigation uses `aria-current="page"`.
+V0.1 includes:
 
-## 10. Presentation conventions, not business components
+- panels, stacks, clusters and empty states;
+- notices and generic badges/status chips;
+- form layout, help, field-error and error-summary presentation;
+- ordinary lists and table wrappers;
+- key-value `<dl>` presentation;
+- compact/wide visibility helpers.
 
-The shell styles ordinary semantic application HTML through a small class vocabulary for panels, stacks, notices, fields, lists, table wrappers, actions and empty states.
+There are intentionally no business/data builders such as `NewTable`, `AddColumn`, record binding, workflow state or validation logic.
 
-There are intentionally no Go APIs such as `NewTable`, `AddColumn`, `BindRecord` or database-aware field builders. The application writes ordinary `<form>`, `<table>`, `<ul>` and related HTML and retains all semantics.
+## 10. Light/dark theming
 
-## 11. Theming
+A small namespaced `--gas-*` token set covers dimensions, spacing, borders, text, surfaces, accent/focus and generic notice tones.
 
-A small namespaced `--gas-*` custom-property set covers dimensions, spacing, borders, text, surfaces, accent/focus and generic notice tones. Consumers override tokens in CSS loaded after `shell.css`. There is no theme plugin/runtime/version system.
+Default light values live at `:root`. Dark values are supplied under `@media (prefers-color-scheme: dark)` using the same tokens. No JavaScript state, theme registry or plugin system exists. Consumers may override tokens after `shell.css` if they require branded or explicit theme behaviour.
 
-## 12. Accessibility
+Print explicitly returns to a light palette.
 
-The shell owns semantic landmarks, skip link, logical order, visible `:focus-visible`, current-navigation semantics, 44px practical target sizing, non-colour-only notices, 200% zoom reflow, reduced-motion respect and useful semantic markup when CSS is missing.
+## 11. Accessibility
 
-The application owns labels/content hierarchy inside its fragments, image alternatives, custom widgets and contrast of its overrides.
+The shell owns semantic landmarks, skip link, logical order, visible `:focus-visible`, current-navigation semantics, 44px practical target sizing, non-colour-only notices/badges, `aria-invalid` styling hooks, 200% zoom reflow, reduced-motion respect and useful semantic markup when CSS is missing.
 
-## 13. Progressive Web App boundary
+The application owns validation decisions, field messages, content hierarchy inside fragments, image alternatives, custom widgets and contrast of its overrides.
 
-PWA support is optional. `PWAConfig` supplies manifest metadata and an explicit static precache list. The generated service worker may precache explicit same-origin static URLs and an offline fallback. It does not cache arbitrary authenticated HTML/API responses, queue/replay mutations, store business records, synchronise writes or resolve conflicts.
+## 12. Progressive Web App boundary
 
-Failed/unsupported service workers leave the ordinary web application unchanged.
+PWA support remains optional. `PWAConfig` supplies manifest metadata and an explicit static precache list.
 
-## 14. Failure and degradation model
+The generated service worker may precache explicit same-origin static URLs and an offline fallback. It never caches arbitrary authenticated HTML/API responses, queues/replays mutations, stores business records, synchronises writes or resolves conflicts.
+
+### Default cache lifecycle
+
+If the caller does not provide `CacheName`, the shell derives a deterministic cache name from:
+
+- `shell.Version`;
+- embedded `shell.css` and `pwa.js` bytes;
+- the normalised precache/offline URL set.
+
+This causes shell asset/config changes to generate a new cache identity. During activation the worker deletes only older caches with the shell-owned `go-app-shell-` prefix.
+
+If the caller provides an explicit cache name, the shell respects it and disables prefix-based cleanup so consumer-owned/unrelated caches cannot be deleted.
+
+## 13. Failure and degradation model
 
 ```text
 full web + optional PWA
@@ -147,29 +152,25 @@ full web + optional PWA
         -> no CSS: semantic browser-default HTML
 ```
 
-The shell never invents stale business data or application state. Invalid renderer/PWA configuration returns errors rather than silently broadening scope.
+The shell never invents stale business data or application state. Failed/unsupported service workers leave ordinary web behaviour unchanged.
 
-## 15. Security boundary
+## 14. Neutral reference application
 
-The shell is not an authentication, authorisation, CSRF or security-header component. PWA precache/icon/offline targets must be rooted same-origin URLs. Security headers, sessions, auth and application content policy remain with the consuming server.
+The demo proves header/navigation, single/list-detail workspaces, ordinary server POST, generic form validation presentation, badges, key-value detail, responsive visibility, safe dynamic fragment templating, light/dark CSS and optional PWA plumbing. It contains no reusable business logic.
 
-## 16. Neutral reference application
+## 15. Test strategy
 
-`app-shell-demo` uses generic records/forms only to prove header/navigation, single/list-detail workspaces, ordinary server POST, form/table/list presentation, generic notices, responsive layout and optional PWA plumbing. It contains no reusable business logic.
+Automated evidence covers deterministic rendering, escaping, independent renderer instances, no-JS navigation, list/detail compact mode, dark-mode/presentation CSS contracts, asset budget, absence of domain/client-runtime vocabulary, manifest generation, same-origin PWA targets, GET-only service-worker behaviour, deterministic cache naming, old shell-cache cleanup boundaries and explicit custom-cache isolation.
 
-## 17. Test strategy
+CI on Go 1.27 adds `gofmt`, `go vet`, race tests, native build, exact version, Linux ARM64 build, HTTP/form acceptance, standard-library-only module contract, render benchmark and exact asset bytes.
 
-Automated evidence covers escaped text, semantic landmarks, deterministic rendering, independent renderer instances, no-JS navigation, list/detail compact mode, embedded assets/budget, absence of domain/client-runtime vocabulary in core source, manifest generation, same-origin PWA targets, GET-only service-worker behaviour and deterministic service-worker generation.
+Human release acceptance covers Chromium/Firefox and WebKit/Safari where practical at 320/390/768/1024/1366/1920/2560 widths, continuous resize, keyboard-only, 200% zoom, light/dark, JavaScript disabled, CSS disabled, print sanity, PWA install/offline and PWA upgrade behaviour.
 
-CI adds `gofmt`, `go vet`, race tests, native build, exact version, Linux ARM64 build, HTTP acceptance, standard-library-only module contract, render benchmark and exact asset bytes. Benchmark numbers are evidence for regression visibility, not brittle nanosecond gates.
+## 16. Known limitations
 
-Human release acceptance covers Chromium/Firefox and WebKit/Safari where practical at 320/390/768/1024/1366/1920/2560 widths, continuous resize, keyboard-only, 200% zoom, JavaScript disabled, CSS disabled, print sanity and PWA/offline behaviour where supported.
+Not a general widget/design-system library; no charts/data-grid/modal/timeline/pagination/filter framework; no generic offline business data; no shell-owned partial-render runtime; PWA install UX varies by platform; caller content/themes can still harm accessibility; visual acceptance remains partly human; 320 CSS px is the V0.1 lower acceptance width.
 
-## 18. Known limitations
-
-Not a general widget/design-system library; no charts/data-grid/modal framework; no generic offline business data; PWA install UX varies by platform; caller content/themes can still harm accessibility; visual acceptance remains partly human; 320 CSS px is the V0.1 lower acceptance width; richer interaction including optional HTMX remains application-owned.
-
-## 19. Acceptance-to-evidence map
+## 17. Acceptance-to-evidence map
 
 | Contract | Evidence |
 |---|---|
@@ -178,11 +179,14 @@ Not a general widget/design-system library; no charts/data-grid/modal framework;
 | independent instances | `TestIndependentRenderers` |
 | no-JS navigation | `TestCoreMarkupDoesNotDependOnJavaScript`, HTTP demo acceptance |
 | list/detail adaptive contract | `TestListDetailCompactPaneContract`, browser matrix |
+| light/dark + small presentation vocabulary | `TestAssetsAndSizeBudget`, browser matrix |
+| form-error presentation | demo 422 HTTP acceptance + browser review |
 | asset/dependency budgets | `TestAssetsAndSizeBudget`, CI byte/module checks |
 | no business/client runtime in core | `TestNoBusinessVocabularyOrClientRuntimeInCoreSource` |
-| optional/static-only PWA | PWA tests and service-worker boundary tests |
+| safe PWA upgrade | PWA cache-name/cleanup/custom-cache tests + manual installed upgrade |
 | degraded CSS/no-JS operation | semantic markup tests + human acceptance |
 | ARM64 | CI cross-build |
+| supported Go baseline | GitHub CI Go 1.27 |
 | render/resource visibility | `BenchmarkRender` + CI asset bytes |
 | real-browser behaviour | release acceptance matrix |
 | implementation matches design | `generated/EDD.md`, `generated/COMPARISON.md` |

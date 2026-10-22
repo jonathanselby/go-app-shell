@@ -1,131 +1,90 @@
-# go-app-shell — Code-Derived Engineering Evidence
+# go-app-shell — Code-Derived Engineering Design
 
-**Recovered implementation:** `137b3d6b73be56e99a8819498094998d04f4ae5b`  
+**Implementation evidence:** `ba797b0a384168750f92044ec793ff268a3783a8`  
 **Generated:** 2026-10-22
 
-## Recovered runtime shape
+## Recovered implementation
+
+The implementation is a public Go package named `shell` plus a neutral demonstration application. The reusable package owns presentation only and contains no database, authentication, authorisation, workflow, routing framework or business-domain subsystem.
+
+### Core execution path
 
 ```text
-caller-owned route/auth/data/business behaviour
-                  |
-                  v
-          shell.Page values
-                  |
-                  v
-       Renderer.Render(io.Writer)
-                  |
-                  v
-           html/template
-                  |
-       +----------+----------+
-       |                     |
- semantic HTML          embedded assets
-                       shell.css + pwa.js
-       |                     |
-       +----------+----------+
-                  |
-                browser
+caller application
+  -> shell.Page / presentation values
+  -> Renderer.Render(io.Writer, Page)
+  -> html/template
+  -> semantic HTML
+  -> embedded shell.css
+  -> optional manifest/service worker
+  -> browser
 ```
 
-The reusable implementation is one public `shell` package plus a neutral `net/http` demonstration application. The shell owns no router, database, authentication service, application state store, workflow engine, plugin registry or client application runtime.
+There is no client application runtime, virtual DOM, hooks, hydration, WASM renderer or shell-owned router.
 
-## Public package
+## Recovered layout model
 
-The public package exposes explicit presentation data and an instance renderer:
+- compact: 320–599 CSS px;
+- medium: 600–1023 CSS px;
+- desktop/wide: 1024 CSS px and above;
+- same semantic HTML structure at all sizes;
+- compact list/detail shows one useful pane;
+- desktop list/detail exposes both panes;
+- compact/wide visibility helpers are CSS only;
+- compact navigation remains zero-JavaScript.
 
-- `Config`
-- `Renderer`
-- `AppHeader`
-- `NavGroup` / `NavItem`
-- `Page`
-- `Workspace`
-- `PWAHead`
-- `PWAConfig` / `PWAIcon`
-- `New`
-- `Render`
-- `AssetsFS`
-- `Manifest`
-- `ServiceWorker`
+## Recovered presentation vocabulary
 
-`Render` targets `io.Writer`, so framework compatibility is obtained without framework-specific adapters.
+The CSS remains deliberately small and generic:
 
-## State and rendering
+- panels/stacks/clusters/empty states;
+- generic notices and badges;
+- semantic form layout, help, field-error and error-summary presentation;
+- list and table wrappers;
+- key-value `<dl>` styling;
+- compact/wide visibility helpers.
 
-Renderer configuration is instance state. Page/application state is caller input. There is no package-global mutable application state.
+No Go-side data-aware form/table builder was introduced.
 
-The renderer validates the workspace contract, executes the embedded `html/template` into a temporary buffer, then writes the completed document to the caller. Normal shell text is escaped; application-owned content slots are explicitly `template.HTML`.
+## Recovered light/dark model
 
-Equivalent inputs have a deterministic-render regression test.
+Light tokens are defined at `:root`. Dark tokens override the same variables under `@media (prefers-color-scheme: dark)`. No JavaScript or theme registry is present. Print restores a light palette.
 
-## Responsive presentation
+## Recovered PWA boundary
 
-One semantic document contains header, navigation and main workspace. CSS owns presentation changes:
+The generated service worker:
 
-```text
-compact/mobile   < 600px
-medium           600–1023px
-desktop/wide     >= 1024px
-```
+- accepts only same-origin rooted precache/offline inputs;
+- intercepts GET only;
+- precaches only configured static URLs and optional offline fallback;
+- does not use IndexedDB, queues, background sync or mutation replay;
+- derives the default cache identity from `shell.Version`, embedded `shell.css`/`pwa.js` bytes and normalised cache inputs;
+- deletes only older caches with the shell-owned `go-app-shell-` prefix;
+- disables prefix cleanup when a caller provides an explicit `CacheName`.
 
-Compact navigation uses a native checkbox/label control, so the core navigation requires no JavaScript. List/detail displays one caller-selected pane on compact widths and both panes at desktop width. Wide tables overflow inside their own wrapper rather than breaking the whole page.
+This corrects the initial release-candidate stale-static-cache risk without broadening offline responsibility.
 
-## Presentation vocabulary
+## Recovered compatibility/support model
 
-The stylesheet supplies generic classes for layout, notices, forms, lists, local table overflow, buttons/actions and empty states. There is no Go-side data/form/table builder and no business-record abstraction.
+`go.mod` declares `go 1.22`, matching the lowest language/API level used by the current source/demo. GitHub CI remains configured for Go 1.27.x, which is the documented supported/tested baseline. Earlier compatible releases are not part of the support matrix.
 
-The default theme is controlled through namespaced `--gas-*` CSS custom properties and system fonts.
+## Recovered demo safety pattern
 
-## PWA boundary
+Dynamic record/form fragments are rendered with `html/template` before being passed into the explicitly trusted `template.HTML` shell slots. The shell trust boundary is unchanged; the demo no longer teaches dynamic string concatenation.
 
-PWA behaviour is optional.
+## Automated evidence
 
-The manifest helper serialises caller-owned install metadata. The service-worker generator validates rooted same-origin inputs, precaches only the explicit static allowlist plus optional offline fallback, ignores non-GET requests and cross-origin requests, and uses the fallback only for failed navigation.
+At implementation commit `ba797b0a384168750f92044ec793ff268a3783a8`:
 
-There is no mutation queue, IndexedDB business store, background-sync workflow or generic application-response cache.
+- local acceptance passed on an available Go 1.23 runner;
+- GitHub Go 1.27 acceptance passed;
+- Linux ARM64 build passed;
+- race tests passed;
+- standard-library-only dependency boundary passed;
+- shell CSS + optional PWA JS measured 11,607 bytes uncompressed, below the 32 KiB ceiling;
+- HTTP acceptance proved list/detail, manifest, GET-only service-worker boundary and shell-rendered form validation error state;
+- cache tests prove deterministic default identity, stale shell-cache cleanup boundary and caller-cache isolation.
 
-## Degradation
+## Human acceptance still required
 
-The recovered implementation supports this deliberate degradation path:
-
-```text
-PWA available
- -> ordinary web
- -> JavaScript absent: server HTML + CSS
- -> CSS absent: semantic browser-default HTML
-```
-
-No degraded layer synthesises application/business state.
-
-## Dependencies and budgets
-
-- language baseline: Go 1.27;
-- runtime Go dependencies: standard library only;
-- required JavaScript: 0 bytes;
-- WebAssembly: none;
-- first-party `shell.css` + optional `pwa.js`: 9,532 bytes uncompressed at this snapshot;
-- asset ceiling: 32 KiB.
-
-The CI acceptance also records a non-gating render benchmark so allocation/time regression stays visible without turning machine-specific nanoseconds into an architecture contract.
-
-## Executable evidence
-
-Package tests cover:
-
-- semantic landmarks and escaping;
-- deterministic rendering;
-- independent renderer instances;
-- compact list/detail contract;
-- zero-JavaScript core markup;
-- optional PWA head integration;
-- embedded asset/size contract;
-- absence of selected business/client-runtime vocabulary in core Go source;
-- manifest generation;
-- refusal of external PWA persistence targets;
-- GET-only/same-origin service-worker boundary;
-- deterministic service-worker output.
-
-`scripts/acceptance.sh` adds format, vet, race tests, dependency boundary, exact version, live neutral HTTP acceptance and benchmark evidence. GitHub CI additionally builds Linux ARM64.
-
-## Human evidence still required before stable V0.1
-
-Automated evidence does not prove browser aesthetics or every responsive/accessibility interaction. Stable V0.1 therefore still requires the human browser matrix in `RELEASE.md`: Chromium/Firefox and WebKit/Safari where practical, phone-to-wide widths, continuous resize, keyboard-only, 200% zoom, JavaScript disabled, CSS disabled, print and PWA/offline behaviour.
+Human browser/visual acceptance remains open for responsive layout, light/dark visual quality, keyboard/zoom, CSS-off/no-JS, print and installed PWA upgrade behaviour.

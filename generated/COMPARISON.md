@@ -1,34 +1,30 @@
 # go-app-shell — Design / Implementation Comparison
 
-**Implementation evidence:** `dcd82bd1d343f8785956f592bf1c189218bd2dde`  
+**Implementation evidence:** `883028ebfa4a69139ad1261ea664699df4d01477`  
 **Generated:** 2026-10-22
 
 | Design area | Intended contract | Recovered implementation | Assessment |
 |---|---|---|---|
-| one-job boundary | presentation shell only | one public shell package; neutral demo outside reusable API | MATCH |
+| one-job boundary | presentation shell only | one public shell package + neutral demo | MATCH |
 | business boundary | no business/domain logic | no DB/auth/workflow/domain subsystem | MATCH |
-| framework breadth | standard Go boundary, no adapters | `Render(io.Writer, Page)`; demo uses plain `net/http` | MATCH |
+| framework breadth | standard Go boundary, no adapters | `Render(io.Writer, Page)` | MATCH |
 | client runtime | zero required JS; no WASM/VDOM/hooks | server HTML + CSS; optional PWA registration only | MATCH |
-| responsive model | one structure, available-width adaptation | compact/medium/desktop CSS from same template | MATCH |
-| list/detail | one pane compact, both wide | explicit compact pane; both panes at 1024px+ | MATCH |
-| presentation vocabulary | small and generic | forms/lists/tables/notices/badges/kv/visibility helpers only | MATCH |
-| validation boundary | presentation only | application decides validation; shell styles errors | MATCH |
-| error focus | application-controlled, zero-JS possible | demo uses native `tabindex=-1` + `autofocus`; shell owns no focus state | MATCH |
-| selector boundary | do not restyle unrelated controls | invalid styling scoped beneath `.gas-field` | MATCH |
-| dark mode | first-class, no runtime | CSS token override via `prefers-color-scheme` | MATCH |
-| PWA persistence | static allowlist/fallback only | same-origin validation; GET-only exact precache + navigation fallback | MATCH |
-| shell PWA upgrade | shell changes invalidate shell cache | version + embedded asset hash + cache inputs | MATCH |
-| app PWA upgrade | stable app URLs can be invalidated explicitly | optional `CacheVersion` participates in cache identity | MATCH |
-| caller cache isolation | never delete app-owned caches | explicit `CacheName` disables shell cleanup | MATCH |
-| app asset ownership | shell must not become build system | no app-resource fetching/content hashing | MATCH |
-| offline business data | none | no IndexedDB/sync/mutation queue/replay | MATCH |
-| trusted dynamic HTML | explicit caller trust | demo dynamic fragments use `html/template` | MATCH |
-| dependencies | stdlib only | no required modules; embedded assets | MATCH |
-| Go support | support 1.27+ without artificial floor | CI Go 1.27.x; module language/API floor 1.22 | MATCH |
-| asset budget | <=32 KiB CSS + optional JS | 11,607 bytes | MATCH |
-| ARM64 | compile gate | Linux ARM64 build passes | MATCH |
-| real browser acceptance | responsive/light-dark/accessibility/PWA matrix | documented; human acceptance pending | PENDING HUMAN ACCEPTANCE |
+| compact navigation | app-like without JS | fixed drawer + scrim using native checkbox/label | MATCH |
+| tablet layout | persistent rail + two panes from 768px | 11.5rem rail + tablet list/detail CSS | MATCH |
+| desktop layout | larger rail/workspace split | 15rem rail + wider list/detail | MATCH |
+| action hierarchy | generic primary presentation only | `gas-button--primary`; app chooses meaning | MATCH |
+| status presentation | visually legible, non-authoritative | tinted notices/badges with text labels | MATCH |
+| panel rhythm | predictable content spacing | first/last-child margin normalisation | MATCH |
+| interaction feedback | short CSS feedback, zero runtime | hover/active transitions; native touch feedback retained | MATCH |
+| document transitions | progressive enhancement only | CSS `@view-transition`; normal fallback | MATCH |
+| prefetch policy | application-owned | no shell speculation rules/prefetch | MATCH |
+| mobile nav semantics | no app-priority assumptions | overlay drawer; no bottom-tab/icon API | MATCH |
+| dark/browser chrome | CSS dark mode + matching chrome | `prefers-color-scheme` + configurable theme-color meta | MATCH |
+| PWA cache version | app build version, not shell version | demo `demoBuildVersion` -> `CacheVersion` | MATCH |
+| asset budget | <=32 KiB | 14,503 bytes | MATCH |
+| Go/ARM64 gates | supported CI + cross-build | Go 1.27 and Linux ARM64 pass | MATCH |
+| real browser visual acceptance | human multi-device review | documented, not automated | PENDING HUMAN ACCEPTANCE |
 
 ## Result
 
-**MATCH for automated/code-verifiable architecture.** The second red-team round found one remaining PWA application-asset invalidation gap and two small presentation-boundary defects. They were fixed with one additive generic field (`CacheVersion`), scoped CSS and demo markup/accessibility changes. No new runtime, framework, state system, business logic or build-system ownership was introduced.
+**MATCH for automated/code-verifiable architecture.** Visual hardening improved phone, tablet and desktop presentation without adding business logic, a frontend runtime, speculative network behaviour or application navigation semantics. Human visual acceptance is the remaining release-candidate gate.

@@ -1,75 +1,55 @@
 # go-app-shell — Code-Derived Engineering Design
 
-**Implementation evidence:** `dcd82bd1d343f8785956f592bf1c189218bd2dde`  
+**Implementation evidence:** `883028ebfa4a69139ad1261ea664699df4d01477`  
 **Generated:** 2026-10-22
 
 ## Recovered implementation
 
-The implementation is a public Go package named `shell` plus a neutral demonstration application. The reusable package owns presentation only and contains no database, authentication, authorisation, workflow, routing framework or business-domain subsystem.
+The implementation remains one public `shell` package plus a neutral demo. It owns presentation only: no DB, auth, workflow, business-domain subsystem, web-framework adapter or browser application runtime.
 
-### Core execution path
+## Recovered execution path
 
 ```text
-caller application
-  -> shell.Page / presentation values
-  -> Renderer.Render(io.Writer, Page)
-  -> html/template
-  -> semantic HTML
-  -> embedded shell.css
-  -> optional manifest/service worker
-  -> browser
+application -> shell.Page -> Renderer.Render(io.Writer, Page)
+            -> html/template -> semantic HTML + embedded CSS
+            -> optional manifest/service worker -> browser
 ```
 
-There is no client application runtime, virtual DOM, hooks, hydration, WASM renderer or shell-owned router.
+## Recovered responsive model
 
-## Recovered layout and presentation
+- compact below 768px: sticky header, zero-JS fixed navigation drawer + scrim, one useful list/detail pane;
+- tablet 768–1023px: persistent 11.5rem navigation rail and two-pane list/detail;
+- desktop 1024px+: full 15rem navigation rail and wider list/detail split;
+- same semantic page/navigation structure at every width;
+- no device sniffing or resize controller.
 
-- compact: 320–599 CSS px;
-- medium: 600–1023 CSS px;
-- desktop/wide: 1024 CSS px and above;
-- same semantic structure at all sizes;
-- compact list/detail shows one useful pane; desktop exposes both;
-- compact navigation remains zero-JavaScript;
-- light/dark presentation uses CSS tokens and `prefers-color-scheme` only;
-- generic presentation includes notices, badges, form error/error summary, key-value `<dl>` and compact/wide visibility helpers;
-- invalid-control styling is scoped to `.gas-field`;
-- no Go-side business/data form or table builders exist.
+## Recovered visual system
 
-## Recovered validation boundary
+- generic secondary and primary actions;
+- short CSS hover/pressed feedback;
+- tinted generic notices and badges;
+- panel first/last-child margin normalisation;
+- light/dark token themes;
+- light/dark browser `theme-color` metadata;
+- CSS cross-document view transitions as progressive enhancement;
+- reduced-motion override;
+- no speculative prefetching, bottom-tab navigation or icon-priority system.
 
-The application decides whether validation failed. The shell supplies presentation hooks only. The neutral demo returns a shell-rendered 422 page and demonstrates native zero-JS error-summary focus with `tabindex="-1" autofocus`; the shell itself performs no focus or validation behaviour.
+## Recovered PWA boundary
 
-## Recovered PWA boundary and upgrade model
-
-The generated service worker:
-
-- accepts only same-origin rooted precache/offline inputs;
-- intercepts GET only;
-- precaches only configured static URLs and optional offline fallback;
-- does not use IndexedDB, queues, background sync or mutation replay;
-- derives the automatic cache identity from `shell.Version`, embedded shell asset bytes, normalised cache inputs and optional `CacheVersion`;
-- uses `CacheVersion` only as caller-supplied invalidation input for app-owned resources with stable URLs;
-- deletes only older caches with the shell-owned `go-app-shell-` prefix;
-- disables prefix cleanup when a caller provides an explicit `CacheName`.
-
-The shell never fetches or hashes application-owned resource contents.
-
-## Recovered support model
-
-`go.mod` declares `go 1.22`, matching the lowest language/API level used by the current source/demo. GitHub CI runs Go 1.27.x, which is the documented supported/tested baseline. Earlier compatible releases remain best-effort and unsupported.
+Static-only same-origin precache/offline fallback remains intact. Default cache identity uses shell version/assets/cache inputs plus optional application `CacheVersion`. The demo now uses an application-owned `demoBuildVersion`, not `shell.Version`, as the teaching pattern.
 
 ## Automated evidence
 
-At implementation commit `dcd82bd1d343f8785956f592bf1c189218bd2dde` on GitHub Go 1.27.3:
+At `883028ebfa4a69139ad1261ea664699df4d01477`:
 
-- format, vet and race tests passed;
-- standard-library-only dependency boundary passed;
-- neutral HTTP/form acceptance passed;
-- Linux ARM64 build passed;
-- shell CSS + optional PWA JS measured **11,607 bytes** uncompressed against the 32 KiB ceiling;
-- `BenchmarkRender` measured approximately **24,592 ns/op, 10,580 B/op and 138 allocs/op** on the GitHub AMD EPYC runner;
-- PWA tests prove same-origin/static-only boundaries, deterministic cache identities, shell-owned cleanup, app `CacheVersion` invalidation and caller-cache isolation.
+- GitHub Go 1.27 acceptance: PASS;
+- race tests: PASS;
+- Linux ARM64 build: PASS;
+- standard-library-only dependency boundary: PASS;
+- CSS + optional PWA JS: **14,503 bytes** (budget <= 32 KiB);
+- render benchmark: approximately **27.2 µs/op, 11,957 B/op, 148 allocs/op** on GitHub AMD EPYC runner.
 
 ## Human acceptance still required
 
-Human browser/visual acceptance remains open for responsive layout, light/dark visual quality, keyboard/zoom, CSS-off/no-JS, print, Android presentation and installed PWA behaviour.
+Human visual acceptance remains open for phone drawer behaviour, tablet rail/two-pane layout, desktop polish, primary-action hierarchy, badges/notices, light/dark browser chrome, transitions/reduced motion, keyboard/zoom, no-JS/no-CSS, print and installed-PWA behaviour.

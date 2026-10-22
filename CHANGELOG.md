@@ -2,23 +2,26 @@
 
 ## 0.1.0-dev — release candidate
 
-- Added deterministic shell-owned PWA cache identities derived from version, embedded assets and configured static cache inputs.
-- Added optional `PWAConfig.CacheVersion` so consuming apps can invalidate stable-URL precached assets with a release/build identifier; fingerprinted URLs remain an alternative.
-- Added activation cleanup limited to older `go-app-shell-` caches; explicit caller cache names remain isolated.
-- Added first-class dark mode through existing CSS tokens and `prefers-color-scheme`, with print forced back to light.
-- Added presentation-only form error states, error summaries, generic badges/status chips, key-value `<dl>` styling and compact/wide visibility helpers.
-- Scoped invalid-control styling beneath `.gas-field` so unrelated controls are not restyled.
-- Demo now groups adjacent blocks using the existing `gas-stack` primitive and demonstrates application-controlled zero-JS error-summary focus.
-- Improved compact header behaviour and removed redundant desktop back-navigation in the demo.
-- Reworked demo dynamic fragments through `html/template` rather than string concatenation.
-- Kept official support at Go 1.27+ while lowering the module language/API floor to Go 1.22 so earlier compatible releases are not rejected unnecessarily; earlier releases remain best-effort and unsupported.
-- Expanded acceptance to cover form-error rendering, PWA cache lifecycle and application cache-version invalidation.
+### Visual hardening
+- Added tablet app layout from 768px with persistent narrow navigation rail and two-pane list/detail.
+- Changed compact navigation from document-flow expansion to a zero-JS overlay drawer with scrim.
+- Added generic primary-action styling and demo action hierarchy.
+- Added tinted notices/badges and balanced panel first/last-child spacing.
+- Added short hover/pressed feedback while retaining native browser/touch feedback.
+- Added progressive CSS cross-document View Transitions with reduced-motion handling.
+- Added caller-configurable light/dark browser `theme-color` metadata and `viewport-fit=cover`.
+- Corrected the demo to use its own application build version for `PWAConfig.CacheVersion`.
+- Deliberately rejected shell-owned speculative prefetching, bottom-tab navigation and icon-priority APIs.
 
-## 0.1.0-dev — initial release candidate
+### Earlier hardening
+- Added deterministic PWA cache identities and optional application `CacheVersion`.
+- Added dark mode through CSS tokens.
+- Added form-error, error-summary, generic badge, key-value and responsive visibility conventions.
+- Scoped invalid-control styling beneath `.gas-field`.
+- Reworked demo dynamic fragments through `html/template`.
+- Kept official Go support at 1.27+ while retaining the lower source/API floor for best-effort compatibility.
 
+### Initial release candidate
 - Added framework-neutral server-rendered application shell for Go.
-- Added responsive compact, medium and desktop/wide layouts from one semantic structure.
-- Added zero-JavaScript navigation, single/list-detail workspaces and accessible presentation defaults.
-- Added semantic form/list/table presentation conventions and CSS design tokens.
-- Added optional manifest/service-worker helpers with static-only same-origin offline boundary.
-- Added neutral reference application, ARM64/CI acceptance and explicit asset/render budgets.
+- Added responsive navigation, single/list-detail workspaces and accessible defaults.
+- Added optional static-only PWA plumbing, ARM64/CI acceptance and explicit resource budgets.

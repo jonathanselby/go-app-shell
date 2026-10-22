@@ -1,49 +1,41 @@
-GO-APP-SHELL — V0.1 DESIGN
+GO-APP-SHELL — V0.1
 
  consuming Go application
  routes / auth / data / business logic
               |
-              | presentation data only
+              | presentation values only
               v
- +-------------------------------+
- |          go-app-shell         |
- |                               |
- | public Go package             |
- | html/template renderer        |
- | navigation metadata           |
- | single + list/detail layout   |
- | design tokens / embedded CSS  |
- | optional PWA metadata         |
- +---------------+---------------+
-                 |
-        +--------+--------+
-        |                 |
-        v                 v
- server HTML         embedded assets
- semantic markup     shell.css
- no-JS core          optional pwa.js
-                     optional service-worker.js
-        |                 |
-        +--------+--------+
-                 |
-                 v
-              browser
-                 |
-       +---------+---------+
-       |                   |
-    compact              wide
-  320px+ portrait    persistent nav
-  one useful pane    flexible workspace
-       |                   |
-       +---------+---------+
-                 |
-                 v
-      same URLs / same application
+ +----------------------------------+
+ |          go-app-shell            |
+ | public shell package             |
+ | explicit Renderer instance       |
+ | html/template                    |
+ | navigation + workspace metadata  |
+ | embedded CSS                     |
+ | optional PWA generation          |
+ +----------------+-----------------+
+                  |
+          shell.Render(io.Writer, Page)
+                  |
+                  v
+            semantic HTML
+                  |
+        +---------+----------+
+        |                    |
+      CSS                 optional PWA
+ responsive layout       manifest + tiny JS
+ 320px -> wide           static allowlist only
+        |                    |
+        +---------+----------+
+                  |
+                  v
+               browser
 
- Optional PWA boundary:
-   manifest + static allowlist + offline fallback only
+ Degradation:
+   full/PWA -> ordinary web -> no JS -> no CSS -> semantic HTML
 
- Explicitly not owned here:
+ Explicitly not owned:
    business logic / domain semantics / auth decisions / permissions /
-   persistence / workflows / application state / offline business data /
-   mutation queues / SPA runtime / frontend framework
+   routing / framework adapters / persistence / workflows / client state /
+   global engine / plugins / WASM / virtual DOM / hooks / hydration /
+   client router / offline business data / mutation replay

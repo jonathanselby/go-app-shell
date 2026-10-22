@@ -1,0 +1,60 @@
+{{define "shell.html" -}}
+<!doctype html>
+<html lang="{{.Config.Language}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{.Page.DocumentTitle}}</title>
+  <link rel="stylesheet" href="{{.Config.AssetBase}}/shell.css">
+  {{range .Config.AdditionalStylesheets}}<link rel="stylesheet" href="{{.}}">{{end}}
+  {{with .Page.PWA}}<link rel="manifest" href="{{.ManifestURL}}">{{end}}
+</head>
+<body class="gas-body">
+  <a class="gas-skip-link" href="#main-content">Skip to content</a>
+  <input class="gas-nav-toggle" id="gas-nav-toggle" type="checkbox" aria-label="Toggle primary navigation">
+  <header class="gas-header">
+    <div class="gas-header__brand">
+      <label class="gas-nav-trigger" for="gas-nav-toggle">Menu</label>
+      <strong class="gas-app-name">{{.Page.App.Name}}</strong>
+      {{with .Page.App.Context}}<span class="gas-app-context">{{.}}</span>{{end}}
+    </div>
+    <div class="gas-header__meta">
+      {{with .Page.App.Status}}<span class="gas-status-text">{{.}}</span>{{end}}
+      {{with .Page.App.UserLabel}}<span class="gas-user-label">{{.}}</span>{{end}}
+    </div>
+  </header>
+  <div class="gas-layout">
+    <nav class="gas-nav" aria-label="Primary">
+      {{range .Page.Navigation}}
+      <section class="gas-nav-group">
+        {{with .Label}}<h2 class="gas-nav-group__label">{{.}}</h2>{{end}}
+        <ul class="gas-nav-list">
+          {{range .Items}}
+          <li><a class="gas-nav-link{{if .Current}} gas-nav-link--current{{end}}" href="{{.URL}}"{{if .Current}} aria-current="page"{{end}}>{{.Label}}</a></li>
+          {{end}}
+        </ul>
+      </section>
+      {{end}}
+    </nav>
+    <main id="main-content" class="gas-main" tabindex="-1">
+      <header class="gas-page-header">
+        <div class="gas-page-heading">
+          <h1>{{.Page.Title}}</h1>
+          {{with .Page.Summary}}<p class="gas-page-summary">{{.}}</p>{{end}}
+        </div>
+        {{with .Page.Actions}}<div class="gas-page-actions">{{.}}</div>{{end}}
+      </header>
+      {{if eq .Page.Workspace.Mode "list-detail"}}
+      <section class="gas-workspace gas-workspace--list-detail" data-compact-pane="{{.Page.Workspace.CompactPane}}">
+        <div class="gas-list-pane">{{.Page.Workspace.List}}</div>
+        <div class="gas-detail-pane">{{.Page.Workspace.Detail}}</div>
+      </section>
+      {{else}}
+      <section class="gas-workspace gas-workspace--single">{{.Page.Workspace.Content}}</section>
+      {{end}}
+    </main>
+  </div>
+  {{with .Page.PWA}}<script defer src="{{.RegistrationURL}}" data-worker-url="{{.ServiceWorkerURL}}"></script>{{end}}
+</body>
+</html>
+{{- end}}

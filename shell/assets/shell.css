@@ -92,6 +92,7 @@ button, .gas-button, .gas-nav-trigger, .gas-nav-link, .gas-list a { -webkit-tap-
 .gas-panel > :last-child { margin-bottom: 0; }
 .gas-panel + .gas-panel { margin-top: var(--gas-space-4); }
 .gas-stack { display: grid; gap: var(--gas-space-4); }
+.gas-stack > * { margin-block: 0; }
 .gas-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--gas-space-3); }
 .gas-muted { color: var(--gas-text-muted); }
 .gas-empty { padding: 3rem var(--gas-space-5); text-align: center; color: var(--gas-text-muted); border: 1px dashed var(--gas-border); border-radius: var(--gas-radius); }

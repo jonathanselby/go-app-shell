@@ -1,6 +1,6 @@
 # go-app-shell — Code-Derived Engineering Design
 
-**Implementation evidence:** `762bc87d4643fc33e16a5c82f199f59583595f71`  
+**Implementation evidence:** `9c9fac5a844205bfdb812c9f74071614fa01da45`  
 **Generated:** 2026-10-22
 
 ## Recovered implementation
@@ -23,6 +23,7 @@ application -> shell.Page -> Renderer.Render(io.Writer, Page)
 - tablet 768–1023px: persistent 11.5rem navigation rail and two-pane list/detail;
 - desktop 1024px+: full 15rem navigation rail and wider list/detail split;
 - detail pane is an inline-size container; key-value layout stacks when the pane itself is narrow rather than relying only on viewport width;
+- stack spacing is owned by `gap`; direct stack children have vertical margins normalised;
 - same semantic page/navigation structure at every width;
 - no device sniffing or resize controller.
 
@@ -39,7 +40,7 @@ application -> shell.Page -> Renderer.Render(io.Writer, Page)
 - generic secondary and primary actions;
 - short CSS hover/pressed feedback;
 - tinted generic notices and badges;
-- panel first/last-child margin normalisation;
+- consistent stack/panel vertical rhythm;
 - light/dark token themes;
 - light/dark browser `theme-color` metadata;
 - CSS cross-document view transitions as progressive enhancement;
@@ -52,7 +53,9 @@ Static-only same-origin precache/offline fallback remains intact. Default cache 
 
 ## Automated evidence
 
-At implementation commit `762bc87d4643fc33e16a5c82f199f59583595f71`:
+Release implementation `9c9fac5a844205bfdb812c9f74071614fa01da45` carries the accepted visual implementation forward and promotes the package version to `0.1.0`. The final release gate must pass before tagging.
+
+Previously verified on the accepted implementation lineage:
 
 - GitHub Go 1.27 acceptance: PASS;
 - race tests: PASS;
@@ -61,6 +64,12 @@ At implementation commit `762bc87d4643fc33e16a5c82f199f59583595f71`:
 - asset budget: PASS (< 32 KiB CSS + optional JS);
 - tests assert the closed-drawer visibility contract, pane container-query contract, safe-area variables, dynamic viewport units and bounded tap-highlight suppression.
 
-## Human acceptance still required
+## Human acceptance
 
-Human visual acceptance remains open for phone drawer focus order, background scroll lock, tablet narrow-pane behaviour, real-device safe areas, mobile browser chrome changes, desktop polish, primary-action hierarchy, badges/notices, light/dark browser chrome, transitions/reduced motion, keyboard/zoom, no-JS/no-CSS, print and installed-PWA behaviour.
+Human UAT completed successfully on 2026-10-22:
+
+- Linux Chrome: PASS;
+- Linux Firefox: PASS;
+- Android Chrome: PASS.
+
+The accepted UAT covered the reusable shell on desktop and mobile, including navigation, records/detail presentation and form use. WebKit/Safari and iOS-specific hardware safe-area behaviour were not available in this UAT environment; V0.1 therefore does not claim device-specific Safari certification.

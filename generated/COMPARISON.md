@@ -1,6 +1,6 @@
 # go-app-shell — Design / Implementation Comparison
 
-**Implementation evidence:** `762bc87d4643fc33e16a5c82f199f59583595f71`  
+**Implementation evidence:** `9c9fac5a844205bfdb812c9f74071614fa01da45`  
 **Generated:** 2026-10-22
 
 | Design area | Intended contract | Recovered implementation | Assessment |
@@ -20,16 +20,16 @@
 | tap feedback | explicit pressed feedback without double flash | bounded WebKit tap-highlight suppression on shell controls | MATCH |
 | action hierarchy | generic primary presentation only | `gas-button--primary`; app chooses meaning | MATCH |
 | status presentation | visually legible, non-authoritative | tinted notices/badges with text labels | MATCH |
-| panel rhythm | predictable content spacing | first/last-child margin normalisation | MATCH |
+| panel/stack rhythm | predictable content spacing | panel edge normalisation + stack-owned vertical gap | MATCH |
 | document transitions | progressive enhancement only | CSS `@view-transition`; normal fallback | MATCH |
 | prefetch policy | application-owned | no shell speculation rules/prefetch | MATCH |
 | mobile nav semantics | no app-priority assumptions | overlay drawer; no bottom-tab/icon API | MATCH |
 | dark/browser chrome | CSS dark mode + matching chrome | `prefers-color-scheme` + configurable theme-color meta | MATCH |
 | PWA cache version | app build version, not shell version | application build version -> `CacheVersion` | MATCH |
 | asset budget | <=32 KiB | PASS | MATCH |
-| Go/ARM64 gates | supported CI + cross-build | Go 1.27 and Linux ARM64 pass | MATCH |
-| real browser visual acceptance | human multi-device review | documented, not automated | PENDING HUMAN ACCEPTANCE |
+| Go/ARM64 gates | supported CI + cross-build | accepted implementation lineage passed Go 1.27 and Linux ARM64 | MATCH |
+| real browser visual acceptance | human multi-device review | Linux Chrome, Linux Firefox and Android Chrome passed UAT | MATCH |
 
 ## Result
 
-**MATCH for automated/code-verifiable architecture.** The accessibility/layout hardening fixes concrete mobile and tablet defects using browser-native CSS only: visibility, container queries, safe-area environment variables and dynamic viewport units. No business logic, JavaScript runtime, framework adapter, app-state system or navigation semantics were added. Human visual acceptance remains the release-candidate gate.
+**MATCH.** V0.1 satisfies the intended presentation-shell boundary and passed human UAT on Linux Chrome, Linux Firefox and Android Chrome. The shell remains server-rendered, framework-neutral and presentation-only, with no business logic, JavaScript application runtime, app-state system or navigation semantics added. WebKit/Safari-specific device certification remains outside the V0.1 UAT evidence rather than being inferred.
